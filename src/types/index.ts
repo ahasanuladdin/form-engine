@@ -2,9 +2,7 @@ export type FieldType =
   // Inputs
   | 'button' | 'button_group' | 'checkbox' | 'date_picker'
   | 'radio_group' | 'radio_item' | 'select' | 'switch'
-  | 'text_field' | 'uploader' | 'textarea' | 'color' | 'file' | 'number'
-  // Range / Rating
-  | 'rating' | 'slider'
+  | 'text_field' | 'uploader'
   // Data display
   | 'list' | 'list_item' | 'tooltip' | 'typography' | 'table'
   // Feedback
@@ -79,13 +77,14 @@ export interface TableColumn {
 
 export interface TableRow {
   id: string
-  cells: Record<string, string>
+  cells: Record<string, string> // columnId -> cell value
 }
 
 export interface FormField {
   id: string
   type: FieldType
   label: string
+  rowId?: string   // fields sharing the same rowId appear side-by-side in one row
   placeholder?: string
   helpText?: string
   defaultValue?: any
@@ -98,8 +97,8 @@ export interface FormField {
   max?: number
   step?: number
   maxRating?: number
-  content?: string
-  level?: 1 | 2 | 3 | 4 | 5 | 6
+  content?: string   // for heading/paragraph/button label
+  level?: 1 | 2 | 3 | 4 | 5 | 6  // for heading
   // button-specific
   buttonVariant?: 'primary' | 'secondary' | 'outline' | 'danger'
   buttonAction?: 'submit' | 'reset' | 'url'
@@ -137,7 +136,7 @@ export interface FormSettings {
   redirectUrl?: string
   showLabels?: boolean
   // Stepper
-  stepperMode?: boolean
+  stepperMode?: boolean   // true = show sections as wizard steps
 }
 
 export interface Form {

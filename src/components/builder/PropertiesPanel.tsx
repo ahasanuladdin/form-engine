@@ -122,8 +122,18 @@ function StylePanel({ field, sectionId }: { field: FormField; sectionId?: string
   const set = (patch: Partial<FieldStyle>) =>
     updateField(field.id, { style: { ...s, ...patch } }, sectionId ?? undefined)
 
-  const isLayout = ['heading', 'paragraph', 'divider', 'blockquote', 'code_block', 'ordered_list', 'unordered_list', 'caption'].includes(field.type)
-  const isInput = !['heading', 'paragraph', 'divider', 'blockquote', 'code_block', 'ordered_list', 'unordered_list', 'caption', 'toggle', 'rating', 'checkbox', 'color', 'file', 'table'].includes(field.type)
+  const isLayout = [
+    'heading', 'paragraph', 'divider', 'blockquote', 'code_block',
+    'ordered_list', 'unordered_list', 'caption',
+  ].includes(field.type)
+
+  const isInput = ![
+    'heading', 'paragraph', 'divider', 'blockquote', 'code_block',
+    'ordered_list', 'unordered_list', 'caption',
+    'button', 'checkbox', 'switch',
+    'circular_progress', 'linear_progress',
+    'table',
+  ].includes(field.type)
 
   const fontSizes = ['10px', '11px', '12px', '13px', '14px', '15px', '16px', '18px', '20px', '24px'].map(v => ({ label: v, value: v }))
   const fontWeights = [
@@ -249,29 +259,21 @@ function TableEditor({ field, sectionId }: { field: FormField; sectionId?: strin
   const { updateField } = useBuilderStore()
   const sid = sectionId ?? undefined
 
-  // ── LOCAL STATE for columns so inputs are always fully controlled ──────────
-  // We seed from field.tableColumns (or fallback), then sync to the store on
-  // every change. This prevents the "empty input" problem caused by stale
-  // store reads between keystrokes.
   const resolvedCols = field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS
   const resolvedRows = field.tableRows?.length    ? field.tableRows    : FALLBACK_ROWS
 
   const [localCols, setLocalCols] = useState<TableColumn[]>(resolvedCols)
   const [localRows, setLocalRows] = useState<TableRow[]>(resolvedRows)
 
-  // Keep local state in sync when a different table field is selected
   useEffect(() => {
     setLocalCols(field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS)
     setLocalRows(field.tableRows?.length    ? field.tableRows    : FALLBACK_ROWS)
   }, [field.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist both cols and rows to the store together
   const persist = (cols: TableColumn[], rows: TableRow[]) => {
     updateField(field.id, { tableColumns: cols, tableRows: rows }, sid)
   }
 
-  // ── Column header change: update local state immediately (keeps input
-  //    responsive) then persist to store ────────────────────────────────────
   const updateColHeader = (idx: number, header: string) => {
     const next = localCols.map((c, i) => i === idx ? { ...c, header } : c)
     setLocalCols(next)
@@ -387,7 +389,6 @@ function TableEditor({ field, sectionId }: { field: FormField; sectionId?: strin
           {localCols.map((col, i) => (
             <div key={col.id} className="flex items-center gap-1.5">
               <GripVertical size={12} className="text-[var(--border)] flex-shrink-0" />
-              {/* Controlled by localCols — always shows what was typed */}
               <input
                 className="fe-input flex-1 text-xs min-w-0"
                 value={col.header}
@@ -451,7 +452,6 @@ function TableEditor({ field, sectionId }: { field: FormField; sectionId?: strin
               <div className="px-2.5 py-2 space-y-1.5">
                 {localCols.map(col => (
                   <div key={col.id} className="flex items-center gap-2">
-                    {/* Label uses live localCols header so it updates as you rename */}
                     <span
                       className="text-[10px] text-[var(--muted)] flex-shrink-0 truncate font-medium"
                       style={{ width: 64, minWidth: 64 }}
@@ -485,9 +485,23 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
   const set = (patch: Partial<FormField>) => updateField(field.id, patch, sid)
   const setVal = (patch: object) => set({ validation: { ...field.validation, ...patch } })
 
-  const hasOptions = ['select', 'radio', 'button_group', 'radio_group'].includes(field.type)
-  const isInput = !['heading', 'paragraph', 'divider', 'blockquote', 'code_block', 'ordered_list', 'unordered_list', 'caption', 'button', 'checkbox', 'toggle', 'rating', 'slider', 'color', 'file', 'table'].includes(field.type)
-  const isLayout = ['heading', 'paragraph', 'divider', 'blockquote', 'code_block', 'ordered_list', 'unordered_list', 'caption', 'button', 'table'].includes(field.type)
+  // Types that have selectable options
+  const hasOptions = ['select', 'radio_group', 'button_group', 'radio_item'].includes(field.type)
+
+  // Layout/display-only types (no label, no validation tab)
+  const isLayout = [
+    'heading', 'paragraph', 'divider', 'blockquote', 'code_block',
+    'ordered_list', 'unordered_list', 'caption', 'button', 'table',
+  ].includes(field.type)
+
+  // Types that render an interactive input (show placeholder + validation)
+  const isInput = ![
+    'heading', 'paragraph', 'divider', 'blockquote', 'code_block',
+    'ordered_list', 'unordered_list', 'caption',
+    'button', 'checkbox', 'switch',
+    'circular_progress', 'linear_progress',
+    'table',
+  ].includes(field.type)
 
   return (
     <div>
@@ -504,6 +518,7 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
 
       {tab === 'general' && (
         <div>
+          {/* ── Table ── */}
           {field.type === 'table' && (
             <>
               <Row label="Table Label (optional)">
@@ -519,6 +534,7 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
             </>
           )}
 
+          {/* ── Heading ── */}
           {field.type === 'heading' && (
             <>
               <Row label="Content"><Input value={field.content} onChange={(v: string) => set({ content: v })} placeholder="Heading text" /></Row>
@@ -535,24 +551,32 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
               </Row>
             </>
           )}
+
+          {/* ── Paragraph ── */}
           {field.type === 'paragraph' && (
             <Row label="Content">
               <textarea className="fe-input resize-none" rows={4} value={field.content || ''}
                 onChange={e => set({ content: e.target.value })} placeholder="Paragraph text..." />
             </Row>
           )}
+
+          {/* ── Blockquote ── */}
           {field.type === 'blockquote' && (
             <Row label="Quote Text">
               <textarea className="fe-input resize-none" rows={3} value={field.content || ''}
                 onChange={e => set({ content: e.target.value })} placeholder="Enter quote text..." />
             </Row>
           )}
+
+          {/* ── Code block ── */}
           {field.type === 'code_block' && (
             <Row label="Code">
               <textarea className="fe-input resize-none font-mono text-xs" rows={5} value={field.content || ''}
                 onChange={e => set({ content: e.target.value })} placeholder={'// Your code here\nconst hello = "world"'} />
             </Row>
           )}
+
+          {/* ── Lists ── */}
           {(field.type === 'ordered_list' || field.type === 'unordered_list') && (
             <>
               <Row label="Title (optional)"><Input value={field.label} onChange={(v: string) => set({ label: v })} placeholder="List title" /></Row>
@@ -562,15 +586,21 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
               </Row>
             </>
           )}
+
+          {/* ── Divider ── */}
           {field.type === 'divider' && (
             <Row label="Label (optional)"><Input value={field.label} onChange={(v: string) => set({ label: v })} placeholder="Section divider text" /></Row>
           )}
+
+          {/* ── Caption ── */}
           {field.type === 'caption' && (
             <Row label="Caption Text">
               <textarea className="fe-input resize-none" rows={2} value={field.content || ''}
                 onChange={e => set({ content: e.target.value })} placeholder="Add a caption or note..." />
             </Row>
           )}
+
+          {/* ── Button ── */}
           {field.type === 'button' && (
             <>
               <Row label="Button Label">
@@ -623,18 +653,24 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
             </>
           )}
 
+          {/* ── All non-layout fields ── */}
           {!isLayout && (
             <>
               <Row label="Label"><Input value={field.label} onChange={(v: string) => set({ label: v })} placeholder="Field label" /></Row>
-              {isInput && <Row label="Placeholder"><Input value={field.placeholder} onChange={(v: string) => set({ placeholder: v })} placeholder="Placeholder text" /></Row>}
+              {isInput && (
+                <Row label="Placeholder">
+                  <Input value={field.placeholder} onChange={(v: string) => set({ placeholder: v })} placeholder="Placeholder text" />
+                </Row>
+              )}
               <Row label="Help Text"><Input value={field.helpText} onChange={(v: string) => set({ helpText: v })} placeholder="Optional help text" /></Row>
-              {field.type === 'textarea' && <Row label="Rows"><Input type="number" value={field.rows} onChange={(v: string) => set({ rows: Number(v) })} placeholder="4" /></Row>}
-              {field.type === 'rating' && <Row label="Max Stars"><Input type="number" value={field.maxRating} onChange={(v: string) => set({ maxRating: Number(v) })} placeholder="5" /></Row>}
-              {field.type === 'slider' && (<>
-                <Row label="Min"><Input type="number" value={field.min} onChange={(v: string) => set({ min: Number(v) })} /></Row>
-                <Row label="Max"><Input type="number" value={field.max} onChange={(v: string) => set({ max: Number(v) })} /></Row>
-                <Row label="Step"><Input type="number" value={field.step} onChange={(v: string) => set({ step: Number(v) })} /></Row>
-              </>)}
+
+              {/* text_field with rows prop (multiline mode) */}
+              {field.type === 'text_field' && (
+                <Row label="Rows">
+                  <Input type="number" value={field.rows} onChange={(v: string) => set({ rows: Number(v) })} placeholder="1" />
+                </Row>
+              )}
+
               {hasOptions && (
                 <div className="mb-3">
                   <SectionTitle>Options</SectionTitle>
@@ -683,15 +719,13 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
               <Input value={field.validation?.message} onChange={(v: string) => setVal({ message: v })} placeholder="Error message (optional)" />
             )}
           </div>
-          {isInput && field.type !== 'number' && (<>
-            <Row label="Min Length"><Input type="number" value={field.validation?.minLength} onChange={(v: string) => setVal({ minLength: Number(v) })} placeholder="0" /></Row>
-            <Row label="Max Length"><Input type="number" value={field.validation?.maxLength} onChange={(v: string) => setVal({ maxLength: Number(v) })} placeholder="255" /></Row>
-            <Row label="Pattern (regex)"><Input value={field.validation?.pattern} onChange={(v: string) => setVal({ pattern: v })} placeholder="e.g. ^[A-Z]" /></Row>
-          </>)}
-          {field.type === 'number' && (<>
-            <Row label="Min Value"><Input type="number" value={field.validation?.min} onChange={(v: string) => setVal({ min: Number(v) })} /></Row>
-            <Row label="Max Value"><Input type="number" value={field.validation?.max} onChange={(v: string) => setVal({ max: Number(v) })} /></Row>
-          </>)}
+          {isInput && (
+            <>
+              <Row label="Min Length"><Input type="number" value={field.validation?.minLength} onChange={(v: string) => setVal({ minLength: Number(v) })} placeholder="0" /></Row>
+              <Row label="Max Length"><Input type="number" value={field.validation?.maxLength} onChange={(v: string) => setVal({ maxLength: Number(v) })} placeholder="255" /></Row>
+              <Row label="Pattern (regex)"><Input value={field.validation?.pattern} onChange={(v: string) => setVal({ pattern: v })} placeholder="e.g. ^[A-Z]" /></Row>
+            </>
+          )}
         </div>
       )}
     </div>

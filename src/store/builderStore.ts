@@ -41,6 +41,8 @@ interface BuilderState {
   removeFieldFromSection: (sectionId: string, fieldId: string) => void
   moveFieldInSection: (sectionId: string, from: number, to: number) => void
   moveFieldBetweenSections: (fieldId: string, fromSectionId: string | null, toSectionId: string | null, toIndex: number) => void
+  rebalanceRow: (rowId: string, sectionId?: string) => void
+  removeFieldFromRow: (fieldId: string, sectionId?: string) => void
 }
 
 // ── Factory function: returns a FRESH object every call ───────────────────────
@@ -478,4 +480,99 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   },
 
   clearDirty: () => set({ isDirty: false }),
+
+  rebalanceRow: (rowId, sectionId) => {
+    // Find all fields with this rowId and set equal widths
+    set(state => {
+      const autoW = (n: number): FormField['width'] =>
+        n >= 4 ? 'col4' : n === 3 ? 'col3' : n === 2 ? 'col2' : 'col1'
+
+      if (sectionId) {
+        return {
+          sections: state.sections.map(sec => {
+            if (sec.id !== sectionId) return sec
+            const rowMembers = sec.fields.filter(f => f.rowId === rowId)
+            if (rowMembers.length === 0) return sec
+            const w = autoW(rowMembers.length)
+            return {
+              ...sec,
+              fields: sec.fields.map(f =>
+                f.rowId === rowId ? { ...f, width: w } : f
+              ),
+            }
+          }),
+          isDirty: true,
+        }
+      } else {
+        const rowMembers = state.fields.filter(f => f.rowId === rowId)
+        if (rowMembers.length === 0) return {}
+        const w = autoW(rowMembers.length)
+        return {
+          fields: state.fields.map(f =>
+            f.rowId === rowId ? { ...f, width: w } : f
+          ),
+          isDirty: true,
+        }
+      }
+    })
+  },
+
+  removeFieldFromRow: (fieldId, sectionId) => {
+    // Strip rowId from a field; then rebalance remaining row members
+    set(state => {
+      let targetRowId: string | undefined
+
+      const processFields = (fields: FormField[]): FormField[] =>
+        fields.map(f => {
+          if (f.id === fieldId) {
+            targetRowId = f.rowId
+            return { ...f, rowId: undefined, width: 'col1' }
+          }
+          return f
+        })
+
+      let newFields = state.fields
+      let newSections = state.sections
+
+      if (sectionId) {
+        newSections = state.sections.map(sec =>
+          sec.id !== sectionId ? sec : { ...sec, fields: processFields(sec.fields) }
+        )
+      } else {
+        newFields = processFields(state.fields)
+      }
+
+      // Now rebalance remaining members of that row
+      if (targetRowId) {
+        const rowId = targetRowId
+        const autoW = (n: number): FormField['width'] =>
+          n >= 4 ? 'col4' : n === 3 ? 'col3' : n === 2 ? 'col2' : 'col1'
+
+        if (sectionId) {
+          newSections = newSections.map(sec => {
+            if (sec.id !== sectionId) return sec
+            const remaining = sec.fields.filter(f => f.rowId === rowId)
+            if (remaining.length === 0) return sec
+            if (remaining.length === 1) {
+              // Only 1 left — dissolve the row entirely
+              return { ...sec, fields: sec.fields.map(f => f.rowId === rowId ? { ...f, rowId: undefined, width: 'col1' } : f) }
+            }
+            const w = autoW(remaining.length)
+            return { ...sec, fields: sec.fields.map(f => f.rowId === rowId ? { ...f, width: w } : f) }
+          })
+        } else {
+          const remaining = newFields.filter(f => f.rowId === rowId)
+          if (remaining.length === 1) {
+            newFields = newFields.map(f => f.rowId === rowId ? { ...f, rowId: undefined, width: 'col1' } : f)
+          } else if (remaining.length > 1) {
+            const w = autoW(remaining.length)
+            newFields = newFields.map(f => f.rowId === rowId ? { ...f, width: w } : f)
+          }
+        }
+      }
+
+      return { fields: newFields, sections: newSections, isDirty: true }
+    })
+  },
+
 }))

@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/core'
 import { useBuilderStore } from '@/store/builderStore'
 import { FieldType, FormField } from '@/types'
+import { v4 as uuid } from 'uuid'
 import FieldPalette from '@/components/builder/FieldPalette'
 import FormCanvas, { FieldCard, getWidthPx } from '@/components/builder/FormCanvas'
 import PropertiesPanel from '@/components/builder/PropertiesPanel'
@@ -17,7 +18,7 @@ import { getFieldMeta } from '@/lib/fieldRegistry'
 export default function NewBuilderPage() {
   const router  = useRouter()
   const store   = useBuilderStore()
-  const { fields, sections, addField, moveField, addFieldToSection, moveFieldInSection, moveFieldBetweenSections, formName, formDescription } = store
+  const { fields, sections, addField, moveField, addFieldToSection, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow, formName, formDescription } = store
 
   const [activeField, setActiveField]             = useState<FormField | null>(null)
   const [activeSectionId, setActiveSectionId]     = useState<string | null>(null)
@@ -67,9 +68,39 @@ export default function NewBuilderPage() {
       return
     }
 
+    // ── Beside drop: user dragged a field onto a "beside" zone ──────────────
+    if (String(over.id).startsWith('beside:')) {
+      const rowFields       = (over.data.current?.rowFields ?? []) as FormField[]
+      const targetSectionId = over.data.current?.sectionId as string | undefined
+      const draggingId      = String(active.id)
+
+      // Skip if already in the same row
+      if (rowFields.some(f => f.id === draggingId)) return
+
+      const newCount = rowFields.length + 1
+      const w: 'col1'|'col2'|'col3'|'col4' = newCount >= 4 ? 'col4' : newCount === 3 ? 'col3' : newCount === 2 ? 'col2' : 'col1'
+
+      // Assign / create a shared rowId
+      const rowId = rowFields[0]?.rowId ?? uuid()
+
+      // Update all existing row fields to same rowId + new width
+      rowFields.forEach(f => updateField(f.id, { rowId, width: w }, targetSectionId))
+
+      // Update the dragged field
+      updateField(draggingId, { rowId, width: w }, targetSectionId ?? (active.data.current?.sectionId as string | undefined))
+      return
+    }
+
     if (active.data.current?.fromCanvas && over.id !== active.id) {
-      const fromSectionId = active.data.current.sectionId as string | undefined
-      const toSectionId   = over.data.current?.sectionId  as string | undefined
+      const fromSectionId   = active.data.current.sectionId as string | undefined
+      const toSectionId     = over.data.current?.sectionId  as string | undefined
+      const draggedField    = active.data.current.field as FormField | undefined
+
+      // If this field belonged to a row and is moving away (not a beside drop), remove it from the row
+      if (draggedField?.rowId && !String(over.id).startsWith('beside:')) {
+        removeFieldFromRow(String(active.id), fromSectionId)
+      }
+
       if (fromSectionId && toSectionId && fromSectionId === toSectionId) {
         const sec = sections.find(s => s.id === fromSectionId)
         if (sec) {
@@ -93,7 +124,7 @@ export default function NewBuilderPage() {
         moveFieldBetweenSections(String(active.id), fromSectionId || null, destSectionId, toIndex)
       }
     }
-  }, [fields, sections, addField, addFieldToSection, moveField, moveFieldInSection, moveFieldBetweenSections])
+  }, [fields, sections, addField, addFieldToSection, moveField, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow])
 
   const paletteMeta = activePaletteType ? getFieldMeta(activePaletteType) : null
 
@@ -123,7 +154,7 @@ export default function NewBuilderPage() {
               </div>
               {(fields.length > 0 || sections.length > 0) && (
                 <p className="text-[11px] text-[var(--muted)] mb-2">
-                  ⠿ Drag any field to move it · Sections group your fields logically
+                  ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
                 </p>
               )}
               <FormCanvas />

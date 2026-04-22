@@ -5,11 +5,16 @@ import { CSS } from '@dnd-kit/utilities'
 import { useBuilderStore } from '@/store/builderStore'
 import { FormField, FormSection, FieldType, FieldWidth } from '@/types'
 import { getFieldMeta } from '@/lib/fieldRegistry'
-import { Trash2, Copy, ChevronRight, Plus, X, LayoutTemplate, Pencil, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'
+import {
+  Trash2, Copy, ChevronRight, Plus, X, LayoutTemplate,
+  Pencil, ChevronDown, ChevronUp, CheckCircle2,
+} from 'lucide-react'
 import FieldPreview from './FieldPreview'
 import BoxChildModal from './BoxChildModal'
 import { useState, useEffect } from 'react'
 import { v4 as uuid } from 'uuid'
+
+// ── Width helpers ─────────────────────────────────────────────────────────────
 
 export const WIDTH_LABEL: Record<FieldWidth, string> = {
   col1: '100%', col2: '50%', col3: '33%', col4: '25%',
@@ -24,12 +29,29 @@ export function getWidthPx(width?: FieldWidth): string {
   }
 }
 
-// ── Box child component display ───────────────────────────────────────────────
+// ── Group flat field list into rows by rowId ──────────────────────────────────
+function groupIntoRows(fields: FormField[]): FormField[][] {
+  const rows: FormField[][] = []
+  const rowMap = new Map<string, FormField[]>()
+  for (const field of fields) {
+    const rid = field.rowId
+    if (rid) {
+      if (!rowMap.has(rid)) {
+        const group: FormField[] = []
+        rowMap.set(rid, group)
+        rows.push(group)
+      }
+      rowMap.get(rid)!.push(field)
+    } else {
+      rows.push([field])
+    }
+  }
+  return rows
+}
+
+// ── Box children display ──────────────────────────────────────────────────────
 function BoxChildrenDisplay({
-  field,
-  onAddChildren,
-  onRemoveChild,
-  parentSectionId,
+  field, onAddChildren, onRemoveChild, parentSectionId,
 }: {
   field: FormField
   onAddChildren: (types: FieldType[]) => void
@@ -50,12 +72,7 @@ function BoxChildrenDisplay({
             return (
               <div
                 key={child.id}
-                onClick={e => {
-                  e.stopPropagation()
-                  // Select the child field; pass the parent box's sectionId
-                  // so updateField knows which section to search in
-                  selectField(child.id, parentSectionId ?? null)
-                }}
+                onClick={e => { e.stopPropagation(); selectField(child.id, parentSectionId ?? null) }}
                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border group/child cursor-pointer transition-all ${
                   isChildSelected
                     ? 'bg-[#eef2ff] border-[var(--brand)] dark:bg-[#1e1b4b]'
@@ -72,14 +89,11 @@ function BoxChildrenDisplay({
                   {child.label || childMeta.label}
                 </span>
                 {isChildSelected && (
-                  <span className="text-[10px] text-[var(--brand)] font-semibold flex-shrink-0">
-                    editing
-                  </span>
+                  <span className="text-[10px] text-[var(--brand)] font-semibold flex-shrink-0">editing</span>
                 )}
                 <button
                   onClick={e => { e.stopPropagation(); onRemoveChild(child.id) }}
                   className="opacity-0 group-hover/child:opacity-100 w-4 h-4 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
-                  title="Remove"
                 >
                   <X size={10} />
                 </button>
@@ -110,8 +124,8 @@ export function FieldCard({ field, isDragging = false, sectionId }: {
 }) {
   const { selectedId, selectField, removeField, duplicateField, updateField } = useBuilderStore()
   const isSelected = selectedId === field.id
-  const meta       = getFieldMeta(field.type)
-  const isBox      = field.type === 'box'
+  const meta = getFieldMeta(field.type)
+  const isBox = field.type === 'box'
 
   const handleAddChildren = (types: FieldType[]) => {
     const newChildren: FormField[] = types.map(type => {
@@ -132,22 +146,33 @@ export function FieldCard({ field, isDragging = false, sectionId }: {
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded flex items-center justify-center" style={{ background: meta.color + '18', color: meta.color }}>
+          <span
+            className="w-5 h-5 rounded flex items-center justify-center"
+            style={{ background: meta.color + '18', color: meta.color }}
+          >
             <meta.icon size={11} />
           </span>
-          <span className="text-xs font-medium text-[var(--muted)] truncate max-w-[120px]">{field.label || meta.label}</span>
+          <span className="text-xs font-medium text-[var(--muted)] truncate max-w-[120px]">
+            {field.label || meta.label}
+          </span>
         </div>
         {!isDragging && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="text-[10px] font-mono text-[var(--muted)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded">
               {WIDTH_LABEL[field.width || 'col1']}
             </span>
-            <button onClick={e => { e.stopPropagation(); duplicateField(field.id, sectionId) }}
-              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--brand)] transition-colors" title="Duplicate">
+            <button
+              onClick={e => { e.stopPropagation(); duplicateField(field.id, sectionId) }}
+              className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--brand)] transition-colors"
+              title="Duplicate"
+            >
               <Copy size={13} />
             </button>
-            <button onClick={e => { e.stopPropagation(); removeField(field.id, sectionId) }}
-              className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--muted)] hover:text-red-500 transition-colors" title="Remove">
+            <button
+              onClick={e => { e.stopPropagation(); removeField(field.id, sectionId) }}
+              className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--muted)] hover:text-red-500 transition-colors"
+              title="Remove"
+            >
               <Trash2 size={13} />
             </button>
             {isSelected && <ChevronRight size={13} className="text-[var(--brand)] ml-1" />}
@@ -178,20 +203,97 @@ export function FieldCard({ field, isDragging = false, sectionId }: {
 // ── Sortable wrapper ──────────────────────────────────────────────────────────
 function SortableFieldCard({ field, sectionId }: { field: FormField; sectionId?: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id:   field.id,
+    id: field.id,
     data: { fromCanvas: true, field, sectionId },
   })
 
   return (
     <div
-      ref={setNodeRef} {...attributes} {...listeners}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={{
-        width: getWidthPx(field.width), flexShrink: 0,
-        transform: CSS.Transform.toString(transform), transition,
-        opacity: isDragging ? 0 : 1, zIndex: isDragging ? 99 : 1, cursor: 'grab',
+        flex: '1 1 0',
+        minWidth: 0,
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0 : 1,
+        zIndex: isDragging ? 99 : 1,
+        cursor: 'grab',
       }}
     >
       <FieldCard field={field} sectionId={sectionId} />
+    </div>
+  )
+}
+
+// ── Beside-drop zone ──────────────────────────────────────────────────────────
+// A slim droppable sliver that appears to the right of each field while dragging.
+// When a compatible field is hovered over it, it expands and highlights.
+function BesideZone({
+  afterField,
+  rowFields,
+  sectionId,
+}: {
+  afterField: FormField
+  rowFields: FormField[]
+  sectionId?: string
+}) {
+  const droppableId = `beside:${afterField.id}`
+  const { isOver, setNodeRef, active } = useDroppable({
+    id: droppableId,
+    data: { type: 'beside', afterFieldId: afterField.id, rowFields, sectionId },
+  })
+
+  // Only show/activate when a draggable field is in motion
+  const draggingField = active?.data?.current?.field as FormField | undefined
+  const alreadyInRow  = draggingField ? rowFields.some(f => f.id === draggingField.id) : false
+  const canAccept     = !!draggingField && !alreadyInRow && rowFields.length < 4
+
+  if (!canAccept && !active) return <div className="w-1 flex-shrink-0" />
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`
+        flex-shrink-0 rounded-lg border-2 border-dashed
+        flex items-center justify-center
+        transition-all duration-150 overflow-hidden
+        ${isOver && canAccept
+          ? 'w-14 border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] shadow-inner'
+          : canAccept
+            ? 'w-6 border-[var(--brand)]/30 bg-[#f5f3ff]/20 hover:border-[var(--brand)]/60 hover:bg-[#eef2ff]/40 hover:w-10'
+            : 'w-2 border-transparent'
+        }
+      `}
+      title={canAccept ? 'Drop here to place beside' : ''}
+    >
+      {isOver && canAccept && (
+        <span
+          className="text-[9px] text-[var(--brand)] font-bold select-none leading-tight text-center px-0.5"
+          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+        >
+          + beside
+        </span>
+      )}
+      {!isOver && canAccept && (
+        <span className="text-[var(--brand)]/40 text-[10px] font-bold select-none">|</span>
+      )}
+    </div>
+  )
+}
+
+// ── Row of fields ─────────────────────────────────────────────────────────────
+function FieldRow({ rowFields, sectionId }: { rowFields: FormField[]; sectionId?: string }) {
+  return (
+    <div className="flex gap-2 items-stretch w-full">
+      {rowFields.map(field => (
+        <div key={field.id} className="flex gap-1 items-stretch min-w-0" style={{ flex: '1 1 0' }}>
+          <SortableFieldCard field={field} sectionId={sectionId} />
+          {/* Beside zone after every field — hidden when row is full (4 fields) */}
+          <BesideZone afterField={field} rowFields={rowFields} sectionId={sectionId} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -217,24 +319,62 @@ function InsertionCursor({ index, active, sectionId }: { index: number; active: 
   )
 }
 
+// ── Field row list ────────────────────────────────────────────────────────────
+function FieldRowList({
+  fields,
+  sectionId,
+  insertIndex,
+  insertSectionId,
+}: {
+  fields: FormField[]
+  sectionId?: string
+  insertIndex: number | null
+  insertSectionId: string | null
+}) {
+  const rows = groupIntoRows(fields)
+
+  const matchesCursor = (rowIdx: number) =>
+    sectionId
+      ? insertSectionId === sectionId && insertIndex === rowIdx
+      : !insertSectionId && insertIndex === rowIdx
+
+  return (
+    <div className="flex flex-col gap-0">
+      <InsertionCursor index={0} active={matchesCursor(0)} sectionId={sectionId} />
+      {rows.map((rowFields, rowIdx) => (
+        <div key={rowFields.map(f => f.id).join('+')} className="flex flex-col">
+          <FieldRow rowFields={rowFields} sectionId={sectionId} />
+          <InsertionCursor index={rowIdx + 1} active={matchesCursor(rowIdx + 1)} sectionId={sectionId} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Empty canvas ──────────────────────────────────────────────────────────────
 function EmptyCanvas() {
   const { isOver, setNodeRef } = useDroppable({ id: 'canvas-empty' })
   const { addSection } = useBuilderStore()
   return (
-    <div ref={setNodeRef}
-      className={`flex flex-col items-center justify-center min-h-[400px] rounded-xl border-2 border-dashed transition-all ${isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b]' : 'border-[var(--border)]'}`}>
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col items-center justify-center min-h-[400px] rounded-xl border-2 border-dashed transition-all ${
+        isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b]' : 'border-[var(--border)]'
+      }`}
+    >
       <div className="w-12 h-12 rounded-2xl bg-[#eef2ff] dark:bg-[#1e1b4b] flex items-center justify-center mb-3">
         <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
-          <path d="M12 5v14M5 12h14" stroke="var(--brand)" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M12 5v14M5 12h14" stroke="var(--brand)" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
       </div>
       <p className="font-medium text-[var(--muted)] text-sm">Drag fields here</p>
       <p className="text-xs text-[var(--muted)] mt-1 opacity-70">Or click a field from the left panel</p>
       <div className="mt-4 flex items-center gap-2">
         <span className="text-xs text-[var(--muted)]">or</span>
-        <button onClick={addSection}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#eef2ff] dark:bg-[#1e1b4b] text-[var(--brand)] text-xs font-medium hover:bg-[#e0e7ff] transition-colors">
+        <button
+          onClick={addSection}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#eef2ff] dark:bg-[#1e1b4b] text-[var(--brand)] text-xs font-medium hover:bg-[#e0e7ff] transition-colors"
+        >
           <LayoutTemplate size={13} />
           Add Section
         </button>
@@ -260,14 +400,24 @@ function SectionBlock({ section }: { section: FormSection }) {
   useEffect(() => { setTitleVal(section.title) }, [section.title])
   useEffect(() => { setDescVal(section.description || '') }, [section.description])
 
-  const commitTitle = () => { updateSection(section.id, { title: titleVal.trim() || 'Untitled Section' }); setEditingTitle(false) }
-  const commitDesc  = () => { updateSection(section.id, { description: descVal }); setEditingDesc(false) }
+  const commitTitle = () => {
+    updateSection(section.id, { title: titleVal.trim() || 'Untitled Section' })
+    setEditingTitle(false)
+  }
+  const commitDesc = () => {
+    updateSection(section.id, { description: descVal })
+    setEditingDesc(false)
+  }
 
   const { setNodeRef, isOver } = useDroppable({ id: `section-drop-${section.id}` })
 
   return (
     <div
-      className={`rounded-xl border-2 transition-all mb-4 ${isSelected ? 'border-[var(--brand)] shadow-md shadow-[var(--brand)]/10' : 'border-[var(--border)] hover:border-[var(--brand)]/40'} ${isOver ? 'bg-[#eef2ff]/40 dark:bg-[#1e1b4b]/40' : 'bg-[var(--panel-bg)]'}`}
+      className={`rounded-xl border-2 transition-all mb-4 ${
+        isSelected
+          ? 'border-[var(--brand)] shadow-md shadow-[var(--brand)]/10'
+          : 'border-[var(--border)] hover:border-[var(--brand)]/40'
+      } ${isOver ? 'bg-[#eef2ff]/40 dark:bg-[#1e1b4b]/40' : 'bg-[var(--panel-bg)]'}`}
       onClick={e => { e.stopPropagation(); selectSection(section.id) }}
     >
       {/* Header */}
@@ -277,35 +427,50 @@ function SectionBlock({ section }: { section: FormSection }) {
 
         <div className="flex-1 min-w-0">
           {editingTitle ? (
-            <input autoFocus
+            <input
+              autoFocus
               className="w-full text-sm font-semibold bg-transparent outline-none border-b border-[var(--brand)] pb-0.5 text-[var(--text)]"
               value={titleVal}
               onChange={e => setTitleVal(e.target.value)}
               onBlur={commitTitle}
-              onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') { setTitleVal(section.title); setEditingTitle(false) } }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitTitle()
+                if (e.key === 'Escape') { setTitleVal(section.title); setEditingTitle(false) }
+              }}
               onClick={e => e.stopPropagation()}
             />
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-[var(--text)] truncate">{section.title}</span>
-              <button onClick={e => { e.stopPropagation(); setEditingTitle(true) }}
-                className="opacity-0 group-hover/sec-header:opacity-100 p-0.5 rounded text-[var(--muted)] hover:text-[var(--brand)] transition-all" title="Rename">
+              <button
+                onClick={e => { e.stopPropagation(); setEditingTitle(true) }}
+                className="opacity-0 group-hover/sec-header:opacity-100 p-0.5 rounded text-[var(--muted)] hover:text-[var(--brand)] transition-all"
+                title="Rename"
+              >
                 <Pencil size={11} />
               </button>
             </div>
           )}
           {editingDesc ? (
-            <input autoFocus
+            <input
+              autoFocus
               className="w-full text-xs bg-transparent outline-none border-b border-[var(--border)] pb-0.5 text-[var(--muted)] mt-0.5"
-              value={descVal} placeholder="Section description (optional)"
+              value={descVal}
+              placeholder="Section description (optional)"
               onChange={e => setDescVal(e.target.value)}
               onBlur={commitDesc}
-              onKeyDown={e => { if (e.key === 'Enter') commitDesc(); if (e.key === 'Escape') { setDescVal(section.description || ''); setEditingDesc(false) } }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitDesc()
+                if (e.key === 'Escape') { setDescVal(section.description || ''); setEditingDesc(false) }
+              }}
               onClick={e => e.stopPropagation()}
             />
           ) : (
-            <div className="text-xs text-[var(--muted)] mt-0.5 cursor-text hover:text-[var(--text)] transition-colors min-h-[16px]"
-              onClick={e => { e.stopPropagation(); setEditingDesc(true) }} title="Click to add description">
+            <div
+              className="text-xs text-[var(--muted)] mt-0.5 cursor-text hover:text-[var(--text)] transition-colors min-h-[16px]"
+              onClick={e => { e.stopPropagation(); setEditingDesc(true) }}
+              title="Click to add description"
+            >
               {section.description || <span className="opacity-40 italic">Add description…</span>}
             </div>
           )}
@@ -316,16 +481,25 @@ function SectionBlock({ section }: { section: FormSection }) {
         </span>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={e => { e.stopPropagation(); duplicateSection(section.id) }}
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--brand)] transition-colors" title="Duplicate">
+          <button
+            onClick={e => { e.stopPropagation(); duplicateSection(section.id) }}
+            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--brand)] transition-colors"
+            title="Duplicate"
+          >
             <Copy size={13} />
           </button>
-          <button onClick={e => { e.stopPropagation(); removeSection(section.id) }}
-            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--muted)] hover:text-red-500 transition-colors" title="Delete">
+          <button
+            onClick={e => { e.stopPropagation(); removeSection(section.id) }}
+            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--muted)] hover:text-red-500 transition-colors"
+            title="Delete"
+          >
             <Trash2 size={13} />
           </button>
-          <button onClick={e => { e.stopPropagation(); setCollapsed(v => !v) }}
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] text-[var(--muted)] transition-colors" title={collapsed ? 'Expand' : 'Collapse'}>
+          <button
+            onClick={e => { e.stopPropagation(); setCollapsed(v => !v) }}
+            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] text-[var(--muted)] transition-colors"
+            title={collapsed ? 'Expand' : 'Collapse'}
+          >
             {collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
           </button>
         </div>
@@ -335,24 +509,19 @@ function SectionBlock({ section }: { section: FormSection }) {
       {!collapsed && (
         <div ref={setNodeRef} className="p-3 min-h-[80px]">
           <SortableContext items={section.fields.map(f => f.id)} strategy={rectSortingStrategy}>
-            <div className="flex flex-col">
-              <InsertionCursor index={0} active={insertSectionId === section.id && insertIndex === 0} sectionId={section.id} />
-              {section.fields.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)]">
-                  <p className="text-xs">Drop fields here</p>
-                  <p className="text-[10px] opacity-60 mt-1">or click a field from the left panel</p>
-                </div>
-              ) : (
-                section.fields.map((field, i) => (
-                  <div key={field.id}>
-                    <div className="flex flex-wrap gap-3">
-                      <SortableFieldCard field={field} sectionId={section.id} />
-                    </div>
-                    <InsertionCursor index={i + 1} active={insertSectionId === section.id && insertIndex === i + 1} sectionId={section.id} />
-                  </div>
-                ))
-              )}
-            </div>
+            {section.fields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 rounded-lg border border-dashed border-[var(--border)] text-[var(--muted)]">
+                <p className="text-xs">Drop fields here</p>
+                <p className="text-[10px] opacity-60 mt-1">or click a field from the left panel</p>
+              </div>
+            ) : (
+              <FieldRowList
+                fields={section.fields}
+                sectionId={section.id}
+                insertIndex={insertIndex}
+                insertSectionId={insertSectionId}
+              />
+            )}
           </SortableContext>
         </div>
       )}
@@ -360,13 +529,9 @@ function SectionBlock({ section }: { section: FormSection }) {
   )
 }
 
-// ── Stepper tab bar (editor) ──────────────────────────────────────────────────
+// ── Stepper tab bar ───────────────────────────────────────────────────────────
 function StepperTabBar({
-  sections,
-  activeStep,
-  onStepClick,
-  onAddStep,
-  onRenameStep,
+  sections, activeStep, onStepClick, onAddStep, onRenameStep,
 }: {
   sections: FormSection[]
   activeStep: number
@@ -412,18 +577,15 @@ function StepperTabBar({
                   ? 'bg-[var(--brand)] text-white border-[var(--brand)] shadow-md shadow-[var(--brand)]/25'
                   : isDone
                     ? 'bg-[var(--brand)]/8 text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)]/15'
-                    : 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)] hover:text-[var(--text)] hover:border-[var(--brand)]/40 hover:bg-[var(--surface-2)]'
+                    : 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)] hover:text-[var(--text)] hover:border-[var(--brand)]/40'
                 }
               `}
             >
               <span className={`
-                w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors
+                w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0
                 ${isActive ? 'bg-white/20 text-white' : isDone ? 'bg-[var(--brand)]/20 text-[var(--brand)]' : 'bg-[var(--border)] text-[var(--muted)]'}
               `}>
-                {isDone
-                  ? <CheckCircle2 size={12} className="text-[var(--brand)]" />
-                  : idx + 1
-                }
+                {isDone ? <CheckCircle2 size={12} className="text-[var(--brand)]" /> : idx + 1}
               </span>
 
               {editingIdx === idx ? (
@@ -447,19 +609,14 @@ function StepperTabBar({
               {editingIdx !== idx && (
                 <span
                   onClick={e => startEdit(idx, e)}
-                  className={`
-                    opacity-0 group-hover/tab:opacity-100 transition-opacity ml-0.5 flex-shrink-0
-                    ${isActive ? 'text-white/60 hover:text-white' : 'text-[var(--muted)] hover:text-[var(--brand)]'}
-                  `}
-                  title="Rename step (or double-click tab)"
+                  className={`opacity-0 group-hover/tab:opacity-100 transition-opacity ml-0.5 flex-shrink-0 ${
+                    isActive ? 'text-white/60 hover:text-white' : 'text-[var(--muted)] hover:text-[var(--brand)]'
+                  }`}
                 >
                   <Pencil size={10} />
                 </span>
               )}
-
-              {isActive && (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-white/40 rounded-full" />
-              )}
+              {isActive && <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-white/40 rounded-full" />}
             </button>
           )
         })}
@@ -467,22 +624,26 @@ function StepperTabBar({
         <button
           onClick={onAddStep}
           className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-dashed border-[var(--border)] text-[var(--muted)] hover:text-[var(--brand)] hover:border-[var(--brand)] hover:bg-[#eef2ff]/50 dark:hover:bg-[#1e1b4b]/50 text-xs font-medium transition-all flex-shrink-0"
-          title="Add step"
         >
-          <Plus size={12} />
-          Step
+          <Plus size={12} />Step
         </button>
       </div>
 
       <div className="mt-2.5 h-1 rounded-full bg-[var(--border)] overflow-hidden">
         <div
           className="h-full rounded-full bg-[var(--brand)] transition-all duration-300"
-          style={{ width: sections.length > 1 ? `${(activeStep / (sections.length - 1)) * 100}%` : activeStep === 0 ? '100%' : '0%' }}
+          style={{
+            width: sections.length > 1
+              ? `${(activeStep / (sections.length - 1)) * 100}%`
+              : activeStep === 0 ? '100%' : '0%',
+          }}
         />
       </div>
       <div className="flex justify-between mt-1">
         <span className="text-[10px] text-[var(--muted)]">Step {activeStep + 1} of {sections.length}</span>
-        <span className="text-[10px] text-[var(--muted)]">{sections[activeStep]?.fields.length || 0} field{sections[activeStep]?.fields.length !== 1 ? 's' : ''} in this step</span>
+        <span className="text-[10px] text-[var(--muted)]">
+          {sections[activeStep]?.fields.length || 0} field{sections[activeStep]?.fields.length !== 1 ? 's' : ''} in this step
+        </span>
       </div>
     </div>
   )
@@ -497,22 +658,20 @@ export default function FormCanvas() {
 
   const stepperMode = settings.stepperMode && sections.length > 0
   const clampedStep = Math.min(activeStep, Math.max(0, sections.length - 1))
+
   useEffect(() => {
     if (clampedStep !== activeStep) setActiveStep(clampedStep)
   }, [clampedStep, activeStep])
 
   const prevSectionCount = useState(sections.length)[0]
   useEffect(() => {
-    if (stepperMode && sections.length > prevSectionCount) {
-      setActiveStep(sections.length - 1)
-    }
+    if (stepperMode && sections.length > prevSectionCount) setActiveStep(sections.length - 1)
   }, [sections.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (fields.length === 0 && sections.length === 0) return <EmptyCanvas />
 
   if (stepperMode) {
     const activeSection = sections[clampedStep]
-
     return (
       <div ref={setNodeRef} className={`min-h-[200px] rounded-xl p-2 transition-colors ${isOver ? 'bg-[#eef2ff]/60 dark:bg-[#1e1b4b]/60' : ''}`}>
         <StepperTabBar
@@ -522,11 +681,7 @@ export default function FormCanvas() {
           onAddStep={addSection}
           onRenameStep={(id, title) => updateSection(id, { title })}
         />
-
-        {activeSection && (
-          <SectionBlock key={activeSection.id} section={activeSection} />
-        )}
-
+        {activeSection && <SectionBlock key={activeSection.id} section={activeSection} />}
         {fields.length > 0 && (
           <div className="mt-3">
             <div className="flex items-center gap-2 mb-3">
@@ -535,21 +690,14 @@ export default function FormCanvas() {
               <div className="flex-1 h-px bg-[var(--border)]" />
             </div>
             <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
-              <div className="flex flex-col">
-                <InsertionCursor index={0} active={!insertSectionId && insertIndex === 0} />
-                {fields.map((field, i) => (
-                  <div key={field.id}>
-                    <div className="flex flex-wrap gap-3">
-                      <SortableFieldCard field={field} />
-                    </div>
-                    <InsertionCursor index={i + 1} active={!insertSectionId && insertIndex === i + 1} />
-                  </div>
-                ))}
-              </div>
+              <FieldRowList
+                fields={fields}
+                insertIndex={insertIndex}
+                insertSectionId={insertSectionId}
+              />
             </SortableContext>
           </div>
         )}
-
         <div className={`mt-1 h-10 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] opacity-100' : 'border-transparent opacity-0'}`}>
           <span className="text-xs text-[var(--brand)] font-medium">Drop here</span>
         </div>
@@ -573,23 +721,19 @@ export default function FormCanvas() {
             </div>
           )}
           <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
-            <div className="flex flex-col">
-              <InsertionCursor index={0} active={!insertSectionId && insertIndex === 0} />
-              {fields.map((field, i) => (
-                <div key={field.id}>
-                  <div className="flex flex-wrap gap-3">
-                    <SortableFieldCard field={field} />
-                  </div>
-                  <InsertionCursor index={i + 1} active={!insertSectionId && insertIndex === i + 1} />
-                </div>
-              ))}
-            </div>
+            <FieldRowList
+              fields={fields}
+              insertIndex={insertIndex}
+              insertSectionId={insertSectionId}
+            />
           </SortableContext>
         </div>
       )}
 
-      <button onClick={addSection}
-        className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[#eef2ff]/50 dark:hover:bg-[#1e1b4b]/50 transition-all text-xs font-medium">
+      <button
+        onClick={addSection}
+        className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[#eef2ff]/50 dark:hover:bg-[#1e1b4b]/50 transition-all text-xs font-medium"
+      >
         <LayoutTemplate size={13} />
         Add Section
       </button>

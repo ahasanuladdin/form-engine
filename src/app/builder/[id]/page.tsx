@@ -6,9 +6,11 @@ import {
   PointerSensor, useSensor, useSensors,
   DragOverlay, rectIntersection,
 } from '@dnd-kit/core'
+import type { CollisionDetection } from '@dnd-kit/core'
 import { useBuilderStore } from '@/store/builderStore'
 import { formsApi } from '@/lib/api'
 import { FieldType, FormField } from '@/types'
+import { v4 as uuid } from 'uuid'
 import FieldPalette from '@/components/builder/FieldPalette'
 import FormCanvas, { FieldCard, getWidthPx } from '@/components/builder/FormCanvas'
 import PropertiesPanel from '@/components/builder/PropertiesPanel'
@@ -17,13 +19,29 @@ import FormRenderer from '@/components/FormRenderer'
 import { getFieldMeta } from '@/lib/fieldRegistry'
 import { Loader2, Eye, PenLine } from 'lucide-react'
 
+// ── Custom collision: beside: zones always win when the pointer is over them ──
+// rectIntersection picks the droppable with the largest overlap area, which means
+// a wide field card (600-800px) always beats the narrow BesideZone (24px).
+// This custom detector checks beside: zones first; only if none intersect does it
+// fall back to rectIntersection for the rest of the droppables.
+const besidePriorityCollision: CollisionDetection = (args) => {
+  const besideContainers = args.droppableContainers.filter(
+    (c) => String(c.id).startsWith('beside:')
+  )
+  if (besideContainers.length > 0) {
+    const besideHits = rectIntersection({ ...args, droppableContainers: besideContainers })
+    if (besideHits.length > 0) return besideHits
+  }
+  return rectIntersection(args)
+}
+
 export default function EditBuilderPage() {
   const params = useParams()
   const id     = Number(params.id)
 
   const store = useBuilderStore()
   const { fields, sections, addField, settings, formName, formDescription,
-          addFieldToSection, moveFieldInSection, moveFieldBetweenSections } = store
+          addFieldToSection, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow } = store
 
   const [activeField, setActiveField]             = useState<FormField | null>(null)
   const [activeSectionId, setActiveSectionId]     = useState<string | null>(null)
@@ -87,9 +105,51 @@ export default function EditBuilderPage() {
       return
     }
 
+    // ── Beside drop ──────────────────────────────────────────────────────────
+    if (String(over.id).startsWith('beside:')) {
+      const rowFields       = (over.data.current?.rowFields ?? []) as FormField[]
+      const targetSectionId = over.data.current?.sectionId as string | undefined
+      const fromSectionId   = active.data.current?.sectionId as string | undefined
+      const draggingId      = String(active.id)
+
+      // Skip if already in the same row
+      if (rowFields.some(f => f.id === draggingId)) return
+
+      const newCount = rowFields.length + 1
+      const w: 'col1'|'col2'|'col3'|'col4' = newCount >= 4 ? 'col4' : newCount === 3 ? 'col3' : newCount === 2 ? 'col2' : 'col1'
+      const rowId = rowFields[0]?.rowId ?? uuid()
+
+      // If dragged field already belongs to a row, detach it first
+      const draggedField = active.data.current?.field as FormField | undefined
+      if (draggedField?.rowId) {
+        removeFieldFromRow(draggingId, fromSectionId)
+      }
+
+      // If coming from a different section, move the field into the target section first
+      const normalizedFrom   = fromSectionId   ?? null
+      const normalizedTarget = targetSectionId ?? null
+
+      if (normalizedFrom !== normalizedTarget) {
+        const targetSec = normalizedTarget ? sections.find(s => s.id === normalizedTarget) : null
+        const toIndex   = targetSec ? targetSec.fields.length : fields.length
+        moveFieldBetweenSections(draggingId, normalizedFrom, normalizedTarget, toIndex)
+      }
+
+      // Assign shared rowId + balanced width to all row members and the dragged field
+      rowFields.forEach(f => updateField(f.id, { rowId, width: w }, targetSectionId))
+      updateField(draggingId, { rowId, width: w }, targetSectionId)
+      return
+    }
+
     if (active.data.current?.fromCanvas && over.id !== active.id) {
-      const fromSectionId = active.data.current.sectionId as string | undefined
-      const toSectionId   = over.data.current?.sectionId  as string | undefined
+      const fromSectionId   = active.data.current.sectionId as string | undefined
+      const toSectionId     = over.data.current?.sectionId  as string | undefined
+      const draggedField    = active.data.current.field as FormField | undefined
+
+      if (draggedField?.rowId && !String(over.id).startsWith('beside:')) {
+        removeFieldFromRow(String(active.id), fromSectionId)
+      }
+
       if (fromSectionId && toSectionId && fromSectionId === toSectionId) {
         const sec = sections.find(s => s.id === fromSectionId)
         if (sec) {
@@ -109,7 +169,7 @@ export default function EditBuilderPage() {
         moveFieldBetweenSections(String(active.id), fromSectionId || null, destSectionId, toIndex)
       }
     }
-  }, [fields, sections, addField, addFieldToSection, store, moveFieldInSection, moveFieldBetweenSections])
+  }, [fields, sections, addField, addFieldToSection, store, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow])
 
   if (loading) {
     return (
@@ -171,7 +231,7 @@ export default function EditBuilderPage() {
       {mode === 'editor' && (
         <DndContext
           sensors={sensors}
-          collisionDetection={rectIntersection}
+          collisionDetection={besidePriorityCollision}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
@@ -180,7 +240,7 @@ export default function EditBuilderPage() {
               <FieldPalette />
             </aside>
 
-            <main className="flex-1 overflow-y-auto bg-[var(--canvas-bg)] p-6 flex flex-col items-center">
+            <main className="flex-1 overflow-y-auto bg-[var(--canvas-bg)] p-6">
               {viewport !== 'desktop' && (
                 <div className="mb-3 flex items-center gap-2 text-xs text-[var(--muted)]">
                   <span className="px-2 py-0.5 rounded-full bg-[var(--surface-2)] font-mono">
@@ -190,8 +250,11 @@ export default function EditBuilderPage() {
                 </div>
               )}
 
-              <div className="transition-all duration-300 w-full"
-                style={{ maxWidth: viewport === 'desktop' ? '100%' : viewport === 'tablet' ? '768px' : '375px' }}>
+              {/* ── Canvas width is now constrained to max-w-2xl for desktop, matching  ── */}
+              {/* ── the new-form page. This ensures BesideZones are a meaningful size   ── */}
+              {/* ── relative to field cards so the custom collision detector can hit them. ── */}
+              <div className="transition-all duration-300 mx-auto"
+                style={{ maxWidth: viewport === 'desktop' ? '672px' : viewport === 'tablet' ? '768px' : '375px' }}>
                 {viewport !== 'desktop' && (
                   <div className={`bg-[#1e293b] rounded-t-2xl px-4 py-2 flex items-center gap-2 ${viewport === 'mobile' ? 'rounded-t-3xl' : ''}`}>
                     <div className="w-2 h-2 rounded-full bg-red-400" />
@@ -212,7 +275,7 @@ export default function EditBuilderPage() {
                       </div>
                       {(fields.length > 0 || sections.length > 0) && (
                         <p className="text-[11px] text-[var(--muted)] mb-2">
-                          ⠿ Drag any field card to move it
+                          ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
                         </p>
                       )}
                       <FormCanvas />
