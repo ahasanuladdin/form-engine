@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import { formsApi } from '@/lib/api'
 import { Form } from '@/types'
 import FormRenderer from '@/components/FormRenderer'
-import { Loader2, ArrowLeft, ExternalLink, Monitor, Tablet, Smartphone } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Edit2, Monitor, Tablet, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 
 export default function PreviewPage() {
@@ -34,9 +34,14 @@ export default function PreviewPage() {
       {/* Preview banner */}
       <div className="bg-[#0f172a] text-white px-6 py-2.5 flex items-center justify-between text-sm">
         <div className="flex items-center gap-3">
-          <Link href={`/builder/${form.id}`} className="flex items-center gap-1.5 hover:text-[#a5b4fc] transition-colors">
+          <Link href="/" className="flex items-center gap-1.5 hover:text-[#a5b4fc] transition-colors">
             <ArrowLeft size={14} />
-            Back to editor
+            Dashboard
+          </Link>
+          <span className="text-[#475569]">•</span>
+          <Link href={`/builder/${form.id}`} className="flex items-center gap-1.5 hover:text-[#a5b4fc] transition-colors text-[#94a3b8]">
+            <Edit2 size={13} />
+            Edit form
           </Link>
           <span className="text-[#475569]">•</span>
           <span className="text-[#94a3b8]">Preview Mode</span>
@@ -85,13 +90,14 @@ export default function PreviewPage() {
         </div>
       )}
 
-      <div className="py-8 px-4">
+      <div className={viewport === 'desktop' ? 'py-8 px-6' : 'py-8 px-4'}>
         <div
           className="mx-auto transition-all duration-300"
-          style={{
-            width: viewport === 'desktop' ? '100%' : viewport === 'tablet' ? '768px' : '375px',
-            maxWidth: viewport === 'desktop' ? '860px' : '100%',
-          }}
+          style={
+            viewport === 'desktop'
+              ? { width: '100%' }
+              : { width: viewport === 'tablet' ? '768px' : '375px', maxWidth: '100%' }
+          }
         >
           {/* Device chrome for non-desktop */}
           {viewport !== 'desktop' && (

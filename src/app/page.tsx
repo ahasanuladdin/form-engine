@@ -166,7 +166,7 @@ export default function HomePage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 justify-end">
                         <Link
-                          href={`/forms/${form.slug}`}
+                          href={`/forms/preview/${form.id}`}
                           className="p-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--muted)] transition-colors"
                           title="Preview"
                         >
