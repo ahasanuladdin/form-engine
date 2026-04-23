@@ -96,9 +96,15 @@ export default function FieldPreview({ field }: Props) {
     case 'button_group': {
       const opts = field.options?.length
         ? field.options
-        : [{ label: 'Option 1', value: 'option1' }, { label: 'Option 2', value: 'option2' }]
-      const btnStyles = [
-        'bg-[#6366f1] text-white border-transparent',
+        : [{ label: 'Primary', value: 'primary' }, { label: 'Secondary', value: 'secondary' }, { label: 'Outline', value: 'outline' }]
+      const variantStyles: Record<string, string> = {
+        primary:   'bg-[#6366f1] text-white',
+        secondary: 'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
+        outline:   'bg-transparent text-[#6366f1] border border-[#6366f1]',
+        danger:    'bg-red-500 text-white',
+      }
+      const fallbackStyles = [
+        'bg-[#6366f1] text-white',
         'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
         'bg-transparent text-[#6366f1] border border-[#6366f1]',
         'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
@@ -106,12 +112,12 @@ export default function FieldPreview({ field }: Props) {
       return (
         <div style={wrapStyle} className="flex flex-col gap-2">
           <Label field={field} />
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-col gap-2">
             {opts.map((opt, i) => (
               <button
                 key={opt.value}
                 disabled
-                className={`px-4 py-2 rounded-lg text-sm font-medium cursor-default ${btnStyles[i % btnStyles.length]}`}
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium cursor-default text-left ${opt.value in variantStyles ? variantStyles[opt.value] : fallbackStyles[i % fallbackStyles.length]}`}
               >
                 {opt.label}
               </button>

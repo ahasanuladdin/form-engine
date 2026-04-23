@@ -4,13 +4,14 @@ import { useParams } from 'next/navigation'
 import { formsApi } from '@/lib/api'
 import { Form } from '@/types'
 import FormRenderer from '@/components/FormRenderer'
-import { Loader2, ArrowLeft, ExternalLink } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Monitor, Tablet, Smartphone } from 'lucide-react'
 import Link from 'next/link'
 
 export default function PreviewPage() {
   const { id }  = useParams()
-  const [form, setForm]     = useState<Form | null>(null)
+  const [form, setForm]       = useState<Form | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
   useEffect(() => {
     formsApi.get(Number(id))
@@ -26,6 +27,8 @@ export default function PreviewPage() {
 
   if (!form) return null
 
+  const viewportWidth = viewport === 'desktop' ? '860px' : viewport === 'tablet' ? '768px' : '375px'
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       {/* Preview banner */}
@@ -38,6 +41,30 @@ export default function PreviewPage() {
           <span className="text-[#475569]">•</span>
           <span className="text-[#94a3b8]">Preview Mode</span>
         </div>
+
+        {/* Viewport switcher */}
+        <div className="flex items-center bg-white/10 rounded-lg p-0.5 gap-0.5">
+          {([
+            { key: 'desktop' as const, icon: Monitor,    title: 'Desktop' },
+            { key: 'tablet'  as const, icon: Tablet,     title: 'Tablet (768px)' },
+            { key: 'mobile'  as const, icon: Smartphone, title: 'Mobile (375px)' },
+          ]).map(({ key, icon: Icon, title }) => (
+            <button
+              key={key}
+              title={title}
+              onClick={() => setViewport(key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                viewport === key
+                  ? 'bg-white/20 text-white'
+                  : 'text-[#94a3b8] hover:text-white'
+              }`}
+            >
+              <Icon size={14} />
+              <span className="hidden sm:block">{title}</span>
+            </button>
+          ))}
+        </div>
+
         {form.is_published && (
           <a
             href={`/forms/${form.slug}`}
@@ -49,9 +76,40 @@ export default function PreviewPage() {
         )}
       </div>
 
-      <div className="py-12 px-4">
-        <div className="max-w-xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-card-lg border border-[#e2e8f0] overflow-hidden">
+      {/* Viewport size label */}
+      {viewport !== 'desktop' && (
+        <div className="flex justify-center pt-4">
+          <span className="px-3 py-1 rounded-full bg-[#e2e8f0] text-[#64748b] text-xs font-mono">
+            {viewport === 'tablet' ? '768px — Tablet view' : '375px — Mobile view'}
+          </span>
+        </div>
+      )}
+
+      <div className="py-8 px-4">
+        <div
+          className="mx-auto transition-all duration-300"
+          style={{
+            width: viewport === 'desktop' ? '100%' : viewport === 'tablet' ? '768px' : '375px',
+            maxWidth: viewport === 'desktop' ? '860px' : '100%',
+          }}
+        >
+          {/* Device chrome for non-desktop */}
+          {viewport !== 'desktop' && (
+            <div className={`px-4 py-2 flex items-center gap-2 ${viewport === 'mobile' ? 'bg-[#1e293b] rounded-t-3xl' : 'bg-[#1e293b] rounded-t-2xl'}`}>
+              <div className="w-2 h-2 rounded-full bg-red-400" />
+              <div className="w-2 h-2 rounded-full bg-yellow-400" />
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <div className="flex-1 mx-4 bg-[#0f172a] rounded-full h-5 flex items-center justify-center">
+                <span className="text-[10px] text-[#475569] font-mono">form preview</span>
+              </div>
+            </div>
+          )}
+
+          <div className={`bg-white shadow-card-lg border border-[#e2e8f0] overflow-hidden ${
+            viewport !== 'desktop'
+              ? 'border-x border-b border-[#1e293b] rounded-b-2xl'
+              : 'rounded-2xl'
+          }`}>
             <div className="h-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]" />
             <div className="p-8">
               <h1 className="text-2xl font-bold text-[#0f172a] mb-1">{form.name}</h1>

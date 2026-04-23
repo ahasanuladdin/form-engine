@@ -24,6 +24,7 @@ export default function NewBuilderPage() {
   const [activeSectionId, setActiveSectionId]     = useState<string | null>(null)
   const [activePaletteType, setActivePaletteType] = useState<FieldType | null>(null)
   const [savedId, setSavedId]                     = useState<number | null>(null)
+  const [viewport, setViewport]                   = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -68,25 +69,19 @@ export default function NewBuilderPage() {
       return
     }
 
-    // ── Beside drop: user dragged a field onto a "beside" zone ──────────────
+    // ── Beside drop ──────────────────────────────────────────────────────────
     if (String(over.id).startsWith('beside:')) {
       const rowFields       = (over.data.current?.rowFields ?? []) as FormField[]
       const targetSectionId = over.data.current?.sectionId as string | undefined
       const draggingId      = String(active.id)
 
-      // Skip if already in the same row
       if (rowFields.some(f => f.id === draggingId)) return
 
       const newCount = rowFields.length + 1
       const w: 'col1'|'col2'|'col3'|'col4' = newCount >= 4 ? 'col4' : newCount === 3 ? 'col3' : newCount === 2 ? 'col2' : 'col1'
-
-      // Assign / create a shared rowId
       const rowId = rowFields[0]?.rowId ?? uuid()
 
-      // Update all existing row fields to same rowId + new width
       rowFields.forEach(f => updateField(f.id, { rowId, width: w }, targetSectionId))
-
-      // Update the dragged field
       updateField(draggingId, { rowId, width: w }, targetSectionId ?? (active.data.current?.sectionId as string | undefined))
       return
     }
@@ -96,7 +91,6 @@ export default function NewBuilderPage() {
       const toSectionId     = over.data.current?.sectionId  as string | undefined
       const draggedField    = active.data.current.field as FormField | undefined
 
-      // If this field belonged to a row and is moving away (not a beside drop), remove it from the row
       if (draggedField?.rowId && !String(over.id).startsWith('beside:')) {
         removeFieldFromRow(String(active.id), fromSectionId)
       }
@@ -133,6 +127,9 @@ export default function NewBuilderPage() {
       <BuilderToolbar
         formId={savedId || undefined}
         onSaved={(id) => { setSavedId(id); router.replace(`/builder/${id}`) }}
+        mode="editor"
+        viewport={viewport}
+        onViewportChange={setViewport}
       />
 
       <DndContext
@@ -146,19 +143,60 @@ export default function NewBuilderPage() {
             <FieldPalette />
           </aside>
 
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-6 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
-                <h1 className="text-xl font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
-                {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+          <main className="flex-1 overflow-y-auto bg-[var(--canvas-bg)] p-6">
+            {viewport !== 'desktop' && (
+              <div className="mb-3 flex items-center gap-2 text-xs text-[var(--muted)]">
+                <span className="px-2 py-0.5 rounded-full bg-[var(--surface-2)] font-mono">
+                  {viewport === 'tablet' ? '768px' : '375px'}
+                </span>
+                <span>{viewport === 'tablet' ? 'Tablet view' : 'Mobile view'}</span>
               </div>
-              {(fields.length > 0 || sections.length > 0) && (
-                <p className="text-[11px] text-[var(--muted)] mb-2">
-                  ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
-                </p>
-              )}
-              <FormCanvas />
-            </div>
+            )}
+
+            {viewport === 'desktop' ? (
+              <div className="w-full">
+                <div className="mb-6 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                  <h1 className="text-xl font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
+                  {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+                </div>
+                {(fields.length > 0 || sections.length > 0) && (
+                  <p className="text-[11px] text-[var(--muted)] mb-2">
+                    ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
+                  </p>
+                )}
+                <FormCanvas viewport="desktop" />
+              </div>
+            ) : (
+              <div
+                className="mx-auto transition-all duration-300"
+                style={{ width: viewport === 'tablet' ? '768px' : '375px', maxWidth: '100%' }}
+              >
+                <div className={`px-4 py-2 flex items-center gap-2 ${viewport === 'mobile' ? 'bg-[#1e293b] rounded-t-3xl' : 'bg-[#1e293b] rounded-t-2xl'}`}>
+                  <div className="w-2 h-2 rounded-full bg-red-400" />
+                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  <div className="flex-1 mx-4 bg-[#0f172a] rounded-full h-5 flex items-center justify-center">
+                    <span className="text-[10px] text-[#475569] font-mono">form preview</span>
+                  </div>
+                </div>
+                <div className="bg-[var(--card-bg)] border-x border-b border-[#1e293b] rounded-b-2xl shadow-2xl overflow-hidden">
+                  <div className="overflow-y-auto max-h-[78vh]" style={{ overflowX: 'hidden' }}>
+                    <div className="p-4">
+                      <div className="mb-4 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                        <h1 className="text-lg font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
+                        {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+                      </div>
+                      {(fields.length > 0 || sections.length > 0) && (
+                        <p className="text-[10px] text-[var(--muted)] mb-2 leading-snug">
+                          ⠿ Drag fields to reorder · Drag onto <span className="font-semibold text-[var(--brand)]">beside</span> zone to place side-by-side
+                        </p>
+                      )}
+                      <FormCanvas viewport={viewport} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
 
           <aside className="w-64 bg-[var(--sidebar-bg)] border-l border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">

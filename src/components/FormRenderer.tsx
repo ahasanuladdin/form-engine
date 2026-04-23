@@ -106,14 +106,33 @@ function FieldRenderer({ field, register, errors, watch, control }: {
       )
     }
 
-    case 'button_group':
+    case 'button_group': {
+      const defaultOptions = [
+        { label: 'Primary', value: 'primary' },
+        { label: 'Secondary', value: 'secondary' },
+        { label: 'Outline', value: 'outline' },
+      ]
+      const groupOptions = field.options?.length ? field.options : defaultOptions
+      const variantStyles: Record<string, string> = {
+        primary:   'bg-[#6366f1] text-white hover:bg-[#4f46e5]',
+        secondary: 'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0] hover:bg-[#e2e8f0]',
+        outline:   'bg-transparent text-[#6366f1] border border-[#6366f1] hover:bg-[#eef2ff]',
+        danger:    'bg-red-500 text-white hover:bg-red-600',
+      }
       return (
-        <div className="flex gap-2 flex-wrap">
-          <button type="button" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#6366f1] text-white hover:bg-[#4f46e5] transition-colors">Primary</button>
-          <button type="button" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0] hover:bg-[#e2e8f0] transition-colors">Secondary</button>
-          <button type="button" className="px-4 py-2 rounded-lg text-sm font-medium bg-transparent text-[#6366f1] border border-[#6366f1] hover:bg-[#eef2ff] transition-colors">Outline</button>
+        <div className="flex flex-col gap-2">
+          {groupOptions.map((opt, i) => {
+            const variant = opt.value in variantStyles ? opt.value : (i === 0 ? 'primary' : i === 1 ? 'secondary' : 'outline')
+            return (
+              <button key={opt.value} type="button"
+                className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${variantStyles[variant]}`}>
+                {opt.label}
+              </button>
+            )
+          })}
         </div>
       )
+    }
 
     case 'checkbox':
       return (
@@ -763,29 +782,56 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
 
   const getWidthStyle = (width?: string): React.CSSProperties => {
     switch (width) {
-      case 'col2': return { width: 'calc(50% - 6px)' }
-      case 'col3': return { width: 'calc(33.333% - 8px)' }
-      case 'col4': return { width: 'calc(25% - 9px)' }
+      case 'col2': return { flex: '1 1 180px', minWidth: 0 }
+      case 'col3': return { flex: '1 1 120px', minWidth: 0 }
+      case 'col4': return { flex: '1 1 80px', minWidth: 0 }
       default: return { width: '100%' }
     }
   }
 
-  const renderFieldList = (fieldList: FormField[]) => (
-    <div className="flex flex-wrap gap-4">
-      {fieldList.map(field => (
-        <div key={field.id} style={getWidthStyle(field.width)} className="pl-6">
-          <SortableField
-            field={field}
-            register={register}
-            errors={errors}
-            watch={watch}
-            control={control}
-            draggable={draggable}
-          />
-        </div>
-      ))}
-    </div>
-  )
+  // Group flat field list into rows by rowId (mirrors FormCanvas groupIntoRows)
+  const groupIntoRows = (fieldList: FormField[]): FormField[][] => {
+    const rows: FormField[][] = []
+    const rowMap = new Map<string, FormField[]>()
+    for (const field of fieldList) {
+      const rid = field.rowId
+      if (rid) {
+        if (!rowMap.has(rid)) {
+          const group: FormField[] = []
+          rowMap.set(rid, group)
+          rows.push(group)
+        }
+        rowMap.get(rid)!.push(field)
+      } else {
+        rows.push([field])
+      }
+    }
+    return rows
+  }
+
+  const renderFieldList = (fieldList: FormField[]) => {
+    const rows = groupIntoRows(fieldList)
+    return (
+      <div className="flex flex-col gap-4">
+        {rows.map((row, ri) => (
+          <div key={ri} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            {row.map(field => (
+              <div key={field.id} style={{ ...getWidthStyle(field.width), minWidth: 0, overflow: 'hidden' }}>
+                <SortableField
+                  field={field}
+                  register={register}
+                  errors={errors}
+                  watch={watch}
+                  control={control}
+                  draggable={draggable}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   // ── Stepper mode ─────────────────────────────────────────────────────────
   const stepperMode = schema.settings?.stepperMode && sections.length > 0
@@ -793,9 +839,8 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
   const isLastStep = currentStep === totalSteps - 1
 
   const StepperBar = () => (
-    <div className="mb-8">
-      {/* Step track */}
-      <div className="flex items-center">
+    <div className="mb-8 overflow-x-auto">
+      <div className="flex items-start min-w-max">
         {sections.map((sec, idx) => {
           const isActive = idx === currentStep
           const isCompleted = idx < currentStep
@@ -805,10 +850,11 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
               <button
                 type="button"
                 onClick={() => setCurrentStep(idx)}
-                className="flex flex-col items-center gap-1.5 focus:outline-none group"
+                className="flex flex-col items-center gap-1.5 focus:outline-none flex-shrink-0"
+                style={{ minWidth: 64, maxWidth: 80 }}
               >
                 <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all ${isCompleted
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all flex-shrink-0 ${isCompleted
                       ? 'bg-[var(--brand,#6366f1)] border-[var(--brand,#6366f1)] text-white'
                       : isActive
                         ? 'bg-white border-[var(--brand,#6366f1)] text-[var(--brand,#6366f1)] shadow-md shadow-[var(--brand,#6366f1)]/20'
@@ -824,17 +870,16 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
                   )}
                 </div>
                 <span
-                  className={`text-xs font-medium max-w-[80px] text-center leading-tight transition-colors ${isActive ? 'text-[var(--brand,#6366f1)]' : isCompleted ? 'text-[#374151]' : 'text-[#94a3b8]'
+                  className={`text-xs font-medium text-center leading-tight transition-colors break-words w-full ${isActive ? 'text-[var(--brand,#6366f1)]' : isCompleted ? 'text-[#374151]' : 'text-[#94a3b8]'
                     }`}
                 >
                   {sec.title}
                 </span>
               </button>
 
-              {/* Connector line (not after last) */}
+              {/* Connector line (not after last) — sits at circle height (top 18px = half of h-9=36px) */}
               {idx < totalSteps - 1 && (
-                <div className="flex-1 h-0.5 mx-2 mb-5 rounded-full transition-all"
-                  style={{ background: idx < currentStep ? 'var(--brand,#6366f1)' : '#e2e8f0' }}
+                <div className="flex-shrink-0 flex-1 h-0.5 mx-2 rounded-full transition-all" style={{ marginTop: 18, minWidth: 12, background: idx < currentStep ? 'var(--brand,#6366f1)' : '#e2e8f0' }}
                 />
               )}
             </React.Fragment>

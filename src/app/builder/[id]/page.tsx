@@ -17,7 +17,7 @@ import PropertiesPanel from '@/components/builder/PropertiesPanel'
 import BuilderToolbar from '@/components/builder/BuilderToolbar'
 import FormRenderer from '@/components/FormRenderer'
 import { getFieldMeta } from '@/lib/fieldRegistry'
-import { Loader2, Eye, PenLine } from 'lucide-react'
+import { Loader2, Eye, PenLine, Monitor, Tablet, Smartphone } from 'lucide-react'
 
 // ── Custom collision: beside: zones always win when the pointer is over them ──
 // rectIntersection picks the droppable with the largest overlap area, which means
@@ -194,35 +194,94 @@ export default function EditBuilderPage() {
 
       {mode === 'preview' && (
         <div className="flex-1 overflow-y-auto bg-[var(--canvas-bg)]">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-6 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
-              <Eye size={14} />
+          {/* Preview banner with viewport switcher */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-6 py-2.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm min-w-0">
+              <Eye size={14} className="flex-shrink-0" />
               <span className="font-medium">Preview Mode</span>
-              <span className="text-amber-500"> — Drag fields in the form to reorder them.</span>
+              <span className="text-amber-500 hidden sm:inline"> — Drag fields in the form to reorder them.</span>
             </div>
+
+            {/* Viewport switcher */}
+            <div className="flex items-center bg-amber-100 dark:bg-amber-900/40 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+              {([
+                { key: 'desktop' as const, icon: Monitor,    label: 'Desktop' },
+                { key: 'tablet'  as const, icon: Tablet,     label: 'Tablet'  },
+                { key: 'mobile'  as const, icon: Smartphone, label: 'Mobile'  },
+              ]).map(({ key, icon: Icon, label }) => (
+                <button
+                  key={key}
+                  title={label}
+                  onClick={() => setViewport(key)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    viewport === key
+                      ? 'bg-white dark:bg-amber-800 text-amber-700 dark:text-amber-200 shadow-sm'
+                      : 'text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200'
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span className="hidden md:block">{label}</span>
+                </button>
+              ))}
+            </div>
+
             <button onClick={() => setMode('editor')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 text-amber-700 dark:text-amber-400 text-xs font-medium transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 text-amber-700 dark:text-amber-400 text-xs font-medium transition-colors flex-shrink-0">
               <PenLine size={12} /> Back to Editor
             </button>
           </div>
-          <div className="max-w-2xl mx-auto px-6 py-8">
-            <div className="bg-[var(--card-bg)] rounded-2xl border border-[var(--border)] shadow-sm p-8">
-              <h1 className="text-2xl font-bold text-[var(--text)] mb-1">{formName}</h1>
-              {formDescription && <p className="text-sm text-[var(--muted)] mb-6">{formDescription}</p>}
-              <hr className="border-[var(--border)] mb-6" />
-              <FormRenderer
-                schema={{ fields, sections, settings }}
-                formName={formName}
-                onSubmit={async () => {}}
-                previewOnly={false}
-                draggable={true}
-                onReorder={(reordered: FormField[]) => {
-                  reordered.forEach((f, i) => {
-                    const storeIdx = fields.findIndex(sf => sf.id === f.id)
-                    if (storeIdx !== i) store.moveField(storeIdx, i)
-                  })
-                }}
-              />
+
+          {/* Viewport size badge */}
+          {viewport !== 'desktop' && (
+            <div className="flex justify-center pt-4">
+              <span className="px-3 py-1 rounded-full bg-[var(--surface-2)] text-[var(--muted)] text-xs font-mono">
+                {viewport === 'tablet' ? '768px — Tablet view' : '375px — Mobile view'}
+              </span>
+            </div>
+          )}
+
+          <div className={`py-8 ${viewport === 'desktop' ? 'px-6' : 'px-4 flex justify-center'}`}>
+            <div
+              className="transition-all duration-300 w-full"
+              style={viewport !== 'desktop' ? {
+                width: viewport === 'tablet' ? '768px' : '375px',
+                maxWidth: '100%',
+              } : undefined}
+            >
+              {/* Device chrome for tablet/mobile */}
+              {viewport !== 'desktop' && (
+                <div className={`px-4 py-2 flex items-center gap-2 bg-[#1e293b] ${viewport === 'mobile' ? 'rounded-t-3xl' : 'rounded-t-2xl'}`}>
+                  <div className="w-2 h-2 rounded-full bg-red-400" />
+                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  <div className="flex-1 mx-4 bg-[#0f172a] rounded-full h-5 flex items-center justify-center">
+                    <span className="text-[10px] text-[#475569] font-mono">form preview</span>
+                  </div>
+                </div>
+              )}
+
+              <div className={`bg-[var(--card-bg)] border border-[var(--border)] shadow-sm p-8 ${
+                viewport !== 'desktop'
+                  ? 'border-x border-b border-[#1e293b] rounded-b-2xl'
+                  : 'rounded-2xl'
+              }`}>
+                <h1 className="text-2xl font-bold text-[var(--text)] mb-1">{formName}</h1>
+                {formDescription && <p className="text-sm text-[var(--muted)] mb-6">{formDescription}</p>}
+                <hr className="border-[var(--border)] mb-6" />
+                <FormRenderer
+                  schema={{ fields, sections, settings }}
+                  formName={formName}
+                  onSubmit={async () => {}}
+                  previewOnly={false}
+                  draggable={true}
+                  onReorder={(reordered: FormField[]) => {
+                    reordered.forEach((f, i) => {
+                      const storeIdx = fields.findIndex(sf => sf.id === f.id)
+                      if (storeIdx !== i) store.moveField(storeIdx, i)
+                    })
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -250,13 +309,23 @@ export default function EditBuilderPage() {
                 </div>
               )}
 
-              {/* ── Canvas width is now constrained to max-w-2xl for desktop, matching  ── */}
-              {/* ── the new-form page. This ensures BesideZones are a meaningful size   ── */}
-              {/* ── relative to field cards so the custom collision detector can hit them. ── */}
-              <div className="transition-all duration-300 mx-auto"
-                style={{ maxWidth: viewport === 'desktop' ? '672px' : viewport === 'tablet' ? '768px' : '375px' }}>
-                {viewport !== 'desktop' && (
-                  <div className={`bg-[#1e293b] rounded-t-2xl px-4 py-2 flex items-center gap-2 ${viewport === 'mobile' ? 'rounded-t-3xl' : ''}`}>
+              {viewport === 'desktop' ? (
+                <div className="w-full">
+                  <div className="mb-6 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
+                    <h1 className="text-xl font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
+                    {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+                  </div>
+                  {(fields.length > 0 || sections.length > 0) && (
+                    <p className="text-[11px] text-[var(--muted)] mb-2">
+                      ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
+                    </p>
+                  )}
+                  <FormCanvas viewport={viewport} />
+                </div>
+              ) : (
+                <div className="mx-auto transition-all duration-300"
+                  style={{ width: viewport === 'tablet' ? '768px' : '375px', maxWidth: '100%' }}>
+                  <div className={`px-4 py-2 flex items-center gap-2 ${viewport === 'mobile' ? 'bg-[#1e293b] rounded-t-3xl' : 'bg-[#1e293b] rounded-t-2xl'}`}>
                     <div className="w-2 h-2 rounded-full bg-red-400" />
                     <div className="w-2 h-2 rounded-full bg-yellow-400" />
                     <div className="w-2 h-2 rounded-full bg-green-400" />
@@ -264,25 +333,24 @@ export default function EditBuilderPage() {
                       <span className="text-[10px] text-[#475569] font-mono">form preview</span>
                     </div>
                   </div>
-                )}
-
-                <div className={`bg-[var(--card-bg)] ${viewport !== 'desktop' ? 'border-x border-b border-[#1e293b] rounded-b-2xl overflow-hidden shadow-2xl' : 'rounded-xl'}`}>
-                  <div className={viewport !== 'desktop' ? 'overflow-y-auto max-h-[70vh]' : ''}>
-                    <div className="p-6">
-                      <div className="mb-6 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-5">
-                        <h1 className="text-xl font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
-                        {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+                  <div className="bg-[var(--card-bg)] border-x border-b border-[#1e293b] rounded-b-2xl shadow-2xl overflow-hidden">
+                    <div className="overflow-y-auto max-h-[78vh]" style={{ overflowX: "hidden" }}>
+                      <div className="p-4">
+                        <div className="mb-4 bg-[var(--card-bg)] rounded-xl border border-[var(--border)] p-4">
+                          <h1 className="text-lg font-bold text-[var(--text)]">{formName || 'Untitled Form'}</h1>
+                          {formDescription && <p className="text-sm text-[var(--muted)] mt-1">{formDescription}</p>}
+                        </div>
+                        {(fields.length > 0 || sections.length > 0) && (
+                          <p className="text-[10px] text-[var(--muted)] mb-2 leading-snug">
+                            ⠿ Drag fields to reorder · Drag onto <span className="font-semibold text-[var(--brand)]">beside</span> zone to place side-by-side
+                          </p>
+                        )}
+                        <FormCanvas viewport={viewport} />
                       </div>
-                      {(fields.length > 0 || sections.length > 0) && (
-                        <p className="text-[11px] text-[var(--muted)] mb-2">
-                          ⠿ Drag fields vertically to reorder · Drag onto the <span className="font-semibold text-[var(--brand)]">→ beside</span> zone to place fields side-by-side · Widths auto-balance
-                        </p>
-                      )}
-                      <FormCanvas />
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </main>
 
             <aside className="w-64 bg-[var(--sidebar-bg)] border-l border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">

@@ -11,8 +11,12 @@ import {
 } from 'lucide-react'
 import FieldPreview from './FieldPreview'
 import BoxChildModal from './BoxChildModal'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import { v4 as uuid } from 'uuid'
+
+// ── Viewport context (so child components know if we're in mobile/tablet frame) ─
+const ViewportContext = createContext<'desktop' | 'tablet' | 'mobile'>('desktop')
+const useViewport = () => useContext(ViewportContext)
 
 // ── Width helpers ─────────────────────────────────────────────────────────────
 
@@ -285,10 +289,26 @@ function BesideZone({
 
 // ── Row of fields ─────────────────────────────────────────────────────────────
 function FieldRow({ rowFields, sectionId }: { rowFields: FormField[]; sectionId?: string }) {
+  const viewport = useViewport()
+  const isMobile = viewport === 'mobile'
+
+  if (isMobile) {
+    // On mobile viewport: stack fields vertically, hide beside zones
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        {rowFields.map(field => (
+          <div key={field.id} className="w-full">
+            <SortableFieldCard field={field} sectionId={sectionId} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex gap-2 items-stretch w-full">
+    <div className="flex gap-2 items-stretch w-full min-w-0" style={{ flexWrap: 'nowrap' }}>
       {rowFields.map(field => (
-        <div key={field.id} className="flex gap-1 items-stretch min-w-0" style={{ flex: '1 1 0' }}>
+        <div key={field.id} className="flex gap-1 items-stretch min-w-0" style={{ flex: '1 1 0', minWidth: 0 }}>
           <SortableFieldCard field={field} sectionId={sectionId} />
           {/* Beside zone after every field — hidden when row is full (4 fields) */}
           <BesideZone afterField={field} rowFields={rowFields} sectionId={sectionId} />
@@ -650,7 +670,7 @@ function StepperTabBar({
 }
 
 // ── Main canvas ───────────────────────────────────────────────────────────────
-export default function FormCanvas() {
+export default function FormCanvas({ viewport = 'desktop' }: { viewport?: 'desktop' | 'tablet' | 'mobile' }) {
   const { fields, sections, insertIndex, insertSectionId, addSection, settings, updateSection } = useBuilderStore()
   const { setNodeRef, isOver } = useDroppable({ id: 'canvas' })
 
@@ -668,27 +688,65 @@ export default function FormCanvas() {
     if (stepperMode && sections.length > prevSectionCount) setActiveStep(sections.length - 1)
   }, [sections.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (fields.length === 0 && sections.length === 0) return <EmptyCanvas />
+  if (fields.length === 0 && sections.length === 0) return (
+    <ViewportContext.Provider value={viewport}>
+      <EmptyCanvas />
+    </ViewportContext.Provider>
+  )
 
   if (stepperMode) {
     const activeSection = sections[clampedStep]
     return (
-      <div ref={setNodeRef} className={`min-h-[200px] rounded-xl p-2 transition-colors ${isOver ? 'bg-[#eef2ff]/60 dark:bg-[#1e1b4b]/60' : ''}`}>
-        <StepperTabBar
-          sections={sections}
-          activeStep={clampedStep}
-          onStepClick={setActiveStep}
-          onAddStep={addSection}
-          onRenameStep={(id, title) => updateSection(id, { title })}
-        />
-        {activeSection && <SectionBlock key={activeSection.id} section={activeSection} />}
-        {fields.length > 0 && (
-          <div className="mt-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider font-medium px-2">Other fields (shown on last step)</span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
+      <ViewportContext.Provider value={viewport}>
+        <div ref={setNodeRef} className={`min-h-[200px] rounded-xl p-2 transition-colors ${isOver ? 'bg-[#eef2ff]/60 dark:bg-[#1e1b4b]/60' : ''}`}>
+          <StepperTabBar
+            sections={sections}
+            activeStep={clampedStep}
+            onStepClick={setActiveStep}
+            onAddStep={addSection}
+            onRenameStep={(id, title) => updateSection(id, { title })}
+          />
+          {activeSection && <SectionBlock key={activeSection.id} section={activeSection} />}
+          {fields.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 h-px bg-[var(--border)]" />
+                <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider font-medium px-2">Other fields (shown on last step)</span>
+                <div className="flex-1 h-px bg-[var(--border)]" />
+              </div>
+              <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
+                <FieldRowList
+                  fields={fields}
+                  insertIndex={insertIndex}
+                  insertSectionId={insertSectionId}
+                />
+              </SortableContext>
             </div>
+          )}
+          <div className={`mt-1 h-10 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] opacity-100' : 'border-transparent opacity-0'}`}>
+            <span className="text-xs text-[var(--brand)] font-medium">Drop here</span>
+          </div>
+        </div>
+      </ViewportContext.Provider>
+    )
+  }
+
+  return (
+    <ViewportContext.Provider value={viewport}>
+      <div ref={setNodeRef} className={`min-h-[200px] rounded-xl p-2 transition-colors ${isOver ? 'bg-[#eef2ff]/60 dark:bg-[#1e1b4b]/60' : ''}`}>
+        {sections.map(section => (
+          <SectionBlock key={section.id} section={section} />
+        ))}
+
+        {fields.length > 0 && (
+          <div>
+            {sections.length > 0 && (
+              <div className="flex items-center gap-2 mb-3 mt-1">
+                <div className="flex-1 h-px bg-[var(--border)]" />
+                <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider font-medium px-2">Other fields</span>
+                <div className="flex-1 h-px bg-[var(--border)]" />
+              </div>
+            )}
             <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
               <FieldRowList
                 fields={fields}
@@ -698,49 +756,19 @@ export default function FormCanvas() {
             </SortableContext>
           </div>
         )}
+
+        <button
+          onClick={addSection}
+          className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[#eef2ff]/50 dark:hover:bg-[#1e1b4b]/50 transition-all text-xs font-medium"
+        >
+          <LayoutTemplate size={13} />
+          Add Section
+        </button>
+
         <div className={`mt-1 h-10 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] opacity-100' : 'border-transparent opacity-0'}`}>
           <span className="text-xs text-[var(--brand)] font-medium">Drop here</span>
         </div>
       </div>
-    )
-  }
-
-  return (
-    <div ref={setNodeRef} className={`min-h-[200px] rounded-xl p-2 transition-colors ${isOver ? 'bg-[#eef2ff]/60 dark:bg-[#1e1b4b]/60' : ''}`}>
-      {sections.map(section => (
-        <SectionBlock key={section.id} section={section} />
-      ))}
-
-      {fields.length > 0 && (
-        <div>
-          {sections.length > 0 && (
-            <div className="flex items-center gap-2 mb-3 mt-1">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider font-medium px-2">Other fields</span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
-            </div>
-          )}
-          <SortableContext items={fields.map(f => f.id)} strategy={rectSortingStrategy}>
-            <FieldRowList
-              fields={fields}
-              insertIndex={insertIndex}
-              insertSectionId={insertSectionId}
-            />
-          </SortableContext>
-        </div>
-      )}
-
-      <button
-        onClick={addSection}
-        className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[#eef2ff]/50 dark:hover:bg-[#1e1b4b]/50 transition-all text-xs font-medium"
-      >
-        <LayoutTemplate size={13} />
-        Add Section
-      </button>
-
-      <div className={`mt-1 h-10 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${isOver ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] opacity-100' : 'border-transparent opacity-0'}`}>
-        <span className="text-xs text-[var(--brand)] font-medium">Drop here</span>
-      </div>
-    </div>
+    </ViewportContext.Provider>
   )
 }

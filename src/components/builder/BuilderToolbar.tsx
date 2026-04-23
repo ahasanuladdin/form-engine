@@ -1,7 +1,7 @@
 'use client'
 import { useBuilderStore } from '@/store/builderStore'
 import { formsApi } from '@/lib/api'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/ThemeProvider'
 import {
@@ -24,6 +24,7 @@ interface Props {
 export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'editor', onModeChange, viewport = 'desktop', onViewportChange }: Props) {
   const store   = useBuilderStore()
   const { fields, sections, formName, formDescription, settings, clearDirty, isDirty, exportSchema, importSchema, insertSchema, insertIndex } = store
+  const totalFields = fields.length + sections.reduce((sum, sec) => sum + sec.fields.length, 0)
   const { setInsertIndex } = store
   const { theme, toggleTheme } = useTheme()
 
@@ -33,7 +34,9 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
   const [importModal, setImportModal] = useState(false)
   const [importText, setImportText]   = useState('')
   const [importError, setImportError] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const fileInputRef  = useRef<HTMLInputElement>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const showToast = (type: 'success'|'error', msg: string) => {
@@ -42,7 +45,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!formName.trim()) return showToast('error', 'Form name is required')
     setSaving(true)
     try {
@@ -61,7 +64,33 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
     } finally {
       setSaving(false)
     }
-  }
+  }, [formName, formDescription, fields, sections, settings, formId, onSaved, clearDirty])
+
+  // ── Auto-save: debounce 2 s whenever isDirty becomes true and formId exists ─
+  const performAutoSave = useCallback(async () => {
+    if (!formId || !formName.trim()) return
+    setAutoSaveStatus('saving')
+    try {
+      const payload = { name: formName, description: formDescription, schema: { fields, sections, settings }, settings }
+      await formsApi.update(formId, payload)
+      clearDirty()
+      setAutoSaveStatus('saved')
+      setTimeout(() => setAutoSaveStatus('idle'), 2000)
+    } catch {
+      setAutoSaveStatus('error')
+    }
+  }, [formId, formName, formDescription, fields, sections, settings, clearDirty])
+
+  useEffect(() => {
+    if (!isDirty || !formId) return
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      performAutoSave()
+    }, 2000)
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    }
+  }, [isDirty, formId, performAutoSave])
 
   // ── Publish ───────────────────────────────────────────────────────────────
   const handlePublish = async () => {
@@ -112,7 +141,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
 
   // ── Import JSON confirm ───────────────────────────────────────────────────
   const handleImportConfirm = () => {
-    const hasExistingFields = fields.length > 0
+    const hasExistingFields = totalFields > 0
     const result = hasExistingFields
       ? insertSchema(importText, insertIndex)
       : importSchema(importText)
@@ -122,7 +151,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
       setImportError('')
       store.setInsertIndex(null) // clear cursor after insert
       showToast('success', hasExistingFields
-        ? `Inserted at position ${(insertIndex ?? fields.length) + 1}`
+        ? `Inserted at position ${(insertIndex ?? totalFields) + 1}`
         : 'Schema imported!')
     } else {
       setImportError(result.error || 'Invalid JSON')
@@ -152,13 +181,33 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
               onChange={e => store.setFormMeta(e.target.value, formDescription)}
               placeholder="Untitled Form"
             />
-            {isDirty && <span className="text-[10px] text-[#f59e0b] font-medium">Unsaved changes</span>}
+            {autoSaveStatus === 'saving' && (
+              <span className="text-[10px] text-[var(--muted)] font-medium flex items-center gap-1">
+                <Loader2 size={10} className="animate-spin" /> Saving…
+              </span>
+            )}
+            {autoSaveStatus === 'saved' && (
+              <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+                <CheckCircle size={10} /> Saved
+              </span>
+            )}
+            {autoSaveStatus === 'error' && (
+              <span className="text-[10px] text-red-500 font-medium flex items-center gap-1">
+                <AlertCircle size={10} /> Save failed
+              </span>
+            )}
+            {autoSaveStatus === 'idle' && isDirty && !formId && (
+              <span className="text-[10px] text-[#f59e0b] font-medium">Unsaved changes</span>
+            )}
+            {autoSaveStatus === 'idle' && isDirty && formId && (
+              <span className="text-[10px] text-[var(--muted)] font-medium">Saving soon…</span>
+            )}
           </div>
         </div>
 
         {/* Field count */}
         <span className="text-xs text-[var(--muted)] hidden md:block">
-          {fields.length} field{fields.length !== 1 ? 's' : ''}
+        {totalFields} field{totalFields !== 1 ? 's' : ''}
         </span>
 
         {/* ── Viewport switcher — center ── */}
@@ -212,7 +261,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
           <button
             onClick={handleExport}
             title="Export JSON"
-            disabled={fields.length === 0}
+            disabled={totalFields === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--surface-2)] transition-colors disabled:opacity-40"
           >
             <Download size={14} />
@@ -292,7 +341,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
               <div>
                 <h2 className="font-semibold text-[var(--text)]">Import Form Schema</h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  {fields.length > 0
+                  {totalFields > 0
                     ? insertIndex !== null
                       ? `Will insert after field ${insertIndex} (cursor position set)`
                       : 'Will append to end — hover between fields to set insert position'
@@ -327,9 +376,9 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
             {/* Footer */}
             <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface-2)] rounded-b-2xl">
               <p className="text-xs text-[var(--muted)]">
-                {fields.length > 0
+                {totalFields > 0
                   ? insertIndex !== null
-                    ? <span className="text-[var(--brand)] font-medium">↕ Inserting after field {insertIndex} of {fields.length}</span>
+                    ? <span className="text-[var(--brand)] font-medium">↕ Inserting after field {insertIndex} of {totalFields}</span>
                     : '↓ No cursor set — will append to end'
                   : '⚠️ This will replace the current canvas'}
               </p>
@@ -345,7 +394,7 @@ export default function BuilderToolbar({ formId, isPublished, onSaved, mode = 'e
                   disabled={!importText.trim()}
                   className="px-4 py-2 rounded-lg bg-[var(--brand)] text-white text-sm font-medium hover:bg-[var(--brand-dark)] transition-colors disabled:opacity-50"
                 >
-                  {fields.length > 0 ? 'Insert Schema' : 'Import Schema'}
+                  {totalFields > 0 ? 'Insert Schema' : 'Import Schema'}
                 </button>
               </div>
             </div>
