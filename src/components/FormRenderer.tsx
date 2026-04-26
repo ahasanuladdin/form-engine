@@ -42,9 +42,9 @@ function buildDefaults(fields: FormField[]): Record<string, any> {
 
 // ── Default table data ────────────────────────────────────────────────────────
 const DEFAULT_TABLE_COLS: TableColumn[] = [
-  { id: 'c1', header: 'Column 1', align: 'left' },
-  { id: 'c2', header: 'Column 2', align: 'left' },
-  { id: 'c3', header: 'Column 3', align: 'left' },
+  { id: 'c1', header: '', align: 'left' },
+  { id: 'c2', header: '', align: 'left' },
+  { id: 'c3', header: '', align: 'left' },
 ]
 
 const DEFAULT_TABLE_ROWS: TableRow[] = [
@@ -322,7 +322,7 @@ function FieldRenderer({ field, register, errors, watch, control }: {
                       border: bordered ? '1px solid #e5e7eb' : undefined,
                     }}
                   >
-                    {col.header}
+                    {col.header || ''}
                   </th>
                 ))}
               </tr>

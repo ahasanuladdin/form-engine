@@ -246,27 +246,34 @@ function OptionsEditor({ field, sectionId }: { field: FormField; sectionId?: str
 
 // ── Table editor ──────────────────────────────────────────────────────────────
 const FALLBACK_COLS: TableColumn[] = [
-  { id: 'c1', header: 'Column 1', align: 'left' },
-  { id: 'c2', header: 'Column 2', align: 'left' },
-  { id: 'c3', header: 'Column 3', align: 'left' },
+  { id: 'c1', header: '', align: 'left' },
+  { id: 'c2', header: '', align: 'left' },
+  { id: 'c3', header: '', align: 'left' },
 ]
 const FALLBACK_ROWS: TableRow[] = [
   { id: 'r1', cells: { c1: 'Cell 1,1', c2: 'Cell 1,2', c3: 'Cell 1,3' } },
   { id: 'r2', cells: { c1: 'Cell 2,1', c2: 'Cell 2,2', c3: 'Cell 2,3' } },
 ]
 
+// Strip auto-generated "Column N" default names so inputs start empty
+const stripDefaultHeaders = (cols: TableColumn[]): TableColumn[] =>
+  cols.map((c, i) => ({
+    ...c,
+    header: c.header === `Column ${i + 1}` ? '' : c.header,
+  }))
+
 function TableEditor({ field, sectionId }: { field: FormField; sectionId?: string | null }) {
   const { updateField } = useBuilderStore()
   const sid = sectionId ?? undefined
 
-  const resolvedCols = field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS
+  const resolvedCols = stripDefaultHeaders(field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS)
   const resolvedRows = field.tableRows?.length    ? field.tableRows    : FALLBACK_ROWS
 
   const [localCols, setLocalCols] = useState<TableColumn[]>(resolvedCols)
   const [localRows, setLocalRows] = useState<TableRow[]>(resolvedRows)
 
   useEffect(() => {
-    setLocalCols(field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS)
+    setLocalCols(stripDefaultHeaders(field.tableColumns?.length ? field.tableColumns : FALLBACK_COLS))
     setLocalRows(field.tableRows?.length    ? field.tableRows    : FALLBACK_ROWS)
   }, [field.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -288,7 +295,7 @@ function TableEditor({ field, sectionId }: { field: FormField; sectionId?: strin
 
   const addCol = () => {
     const newId  = `c${Date.now()}`
-    const newCol: TableColumn = { id: newId, header: `Column ${localCols.length + 1}`, align: 'left' }
+    const newCol: TableColumn = { id: newId, header: '', align: 'left' }
     const newRows = localRows.map(r => ({ ...r, cells: { ...r.cells, [newId]: '' } }))
     setLocalCols([...localCols, newCol])
     setLocalRows(newRows)

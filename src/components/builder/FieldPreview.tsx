@@ -53,9 +53,9 @@ function Label({ field }: Props) {
 const inputBase = "w-full px-3 py-2 border border-[#d1d5db] rounded-lg text-sm text-[#374151] bg-[#f9fafb] placeholder-[#9ca3af] focus:outline-none"
 
 const DEFAULT_TABLE_COLS: TableColumn[] = [
-  { id: 'c1', header: 'Column 1', align: 'left' },
-  { id: 'c2', header: 'Column 2', align: 'left' },
-  { id: 'c3', header: 'Column 3', align: 'left' },
+  { id: 'c1', header: '', align: 'left' },
+  { id: 'c2', header: '', align: 'left' },
+  { id: 'c3', header: '', align: 'left' },
 ]
 
 const DEFAULT_TABLE_ROWS: TableRow[] = [
@@ -281,7 +281,7 @@ export default function FieldPreview({ field }: Props) {
                       border: bordered ? '1px solid #e5e7eb' : undefined,
                     }}
                   >
-                    {col.header}
+                    {col.header || <span className="text-[#9ca3af] font-normal italic">Column</span>}
                   </th>
                 ))}
               </tr>
