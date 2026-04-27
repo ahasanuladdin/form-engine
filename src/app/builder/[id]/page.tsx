@@ -51,11 +51,7 @@ export default function EditBuilderPage() {
   const [mode, setMode]     = useState<'editor' | 'preview'>('editor')
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  )
-
-  useEffect(() => {
+  const loadForm = useCallback(() => {
     formsApi.get(id).then(res => {
       const f = res.data.data
       setForm(f)
@@ -68,6 +64,23 @@ export default function EditBuilderPage() {
       )
     }).finally(() => setLoading(false))
   }, [id])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  useEffect(() => {
+    loadForm()
+  }, [loadForm])
+
+  // Re-fetch schema when user returns to this tab/page (e.g. after editing in preview)
+  useEffect(() => {
+    const onFocus = () => {
+      if (!document.hidden) loadForm()
+    }
+    document.addEventListener('visibilitychange', onFocus)
+    return () => document.removeEventListener('visibilitychange', onFocus)
+  }, [loadForm])
 
   const handleDragStart = useCallback(({ active }: DragStartEvent) => {
     if (active.data.current?.fromPalette) {
@@ -279,6 +292,12 @@ export default function EditBuilderPage() {
                       const storeIdx = fields.findIndex(sf => sf.id === f.id)
                       if (storeIdx !== i) store.moveField(storeIdx, i)
                     })
+                  }}
+                  onFieldChange={(fieldId: string, patch: Partial<FormField>) => {
+                    const ownerSection = sections.find(sec =>
+                      sec.fields.some(f => f.id === fieldId)
+                    )
+                    store.updateField(fieldId, patch, ownerSection?.id)
                   }}
                 />
               </div>

@@ -192,8 +192,8 @@ export function FieldCard({ field, isDragging = false, sectionId }: {
           parentSectionId={sectionId}
         />
       ) : (
-        <div className="pointer-events-none select-none">
-          <FieldPreview field={field} />
+        <div className={field.type === 'table' ? 'select-none' : 'pointer-events-none select-none'}>
+          <FieldPreview field={field} sectionId={sectionId} />
         </div>
       )}
 

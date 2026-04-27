@@ -1,8 +1,10 @@
 import React from 'react'
 import { FormField, FieldStyle, TableColumn, TableRow } from '@/types'
 import { getFieldMeta } from '@/lib/fieldRegistry'
+import { Trash2 } from 'lucide-react'
+import { useBuilderStore } from '@/store/builderStore'
 
-interface Props { field: FormField }
+interface Props { field: FormField; sectionId?: string }
 
 function buildWrapperStyle(s?: FieldStyle): React.CSSProperties {
   if (!s) return {}
@@ -64,10 +66,22 @@ const DEFAULT_TABLE_ROWS: TableRow[] = [
   { id: 'r3', cells: { c1: 'Cell 3,1', c2: 'Cell 3,2', c3: 'Cell 3,3' } },
 ]
 
-export default function FieldPreview({ field }: Props) {
+export default function FieldPreview({ field, sectionId }: Props) {
+  const { updateField } = useBuilderStore()
   const s = field.style
   const inputStyle = buildInputStyle(s)
   const wrapStyle  = buildWrapperStyle(s)
+
+  const deleteColumn = (colId: string) => {
+    const cols = field.tableColumns ?? DEFAULT_TABLE_COLS
+    if (cols.length <= 1) return
+    const newCols = cols.filter(c => c.id !== colId)
+    const newRows = (field.tableRows ?? DEFAULT_TABLE_ROWS).map(r => {
+      const { [colId]: _, ...rest } = r.cells
+      return { ...r, cells: rest }
+    })
+    updateField(field.id, { tableColumns: newCols, tableRows: newRows }, sectionId)
+  }
 
   switch (field.type) {
 
@@ -274,7 +288,7 @@ export default function FieldPreview({ field }: Props) {
                 {cols.map(col => (
                   <th
                     key={col.id}
-                    className={`font-semibold text-[#374151] ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}
+                    className={`relative group/col font-semibold text-[#374151] ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}
                     style={{
                       textAlign: col.align || 'left',
                       width: col.width || undefined,
@@ -282,6 +296,16 @@ export default function FieldPreview({ field }: Props) {
                     }}
                   >
                     {col.header || <span className="text-[#9ca3af] font-normal italic">Column</span>}
+                    {cols.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); deleteColumn(col.id) }}
+                        className="absolute top-0.5 right-0.5 opacity-0 group-hover/col:opacity-100 transition-opacity p-0.5 rounded bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600"
+                        title={`Delete column "${col.header || 'Column'}"`}
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
                   </th>
                 ))}
               </tr>

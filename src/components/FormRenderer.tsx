@@ -11,7 +11,7 @@ import {
   SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Plus, Trash2 } from 'lucide-react'
 
 interface Props {
   schema: FormSchema
@@ -20,6 +20,7 @@ interface Props {
   previewOnly?: boolean
   draggable?: boolean
   onReorder?: (fields: FormField[]) => void
+  onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void
 }
 
 const TYPOGRAPHY_TYPES = new Set(['heading', 'paragraph', 'blockquote', 'code_block', 'ordered_list', 'unordered_list', 'divider', 'caption', 'table'])
@@ -52,9 +53,238 @@ const DEFAULT_TABLE_ROWS: TableRow[] = [
   { id: 'r2', cells: { c1: 'Cell 2,1', c2: 'Cell 2,2', c3: 'Cell 2,3' } },
 ]
 
+// ── Editable Table (Preview mode) ─────────────────────────────────────────────
+function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void }) {
+  const initCols: TableColumn[] = field.tableColumns?.length ? field.tableColumns : DEFAULT_TABLE_COLS
+  const initRows: TableRow[]    = field.tableRows?.length    ? field.tableRows    : DEFAULT_TABLE_ROWS
+
+  const [cols, setCols] = useState<TableColumn[]>(initCols)
+  const [rows, setRows] = useState<TableRow[]>(initRows)
+  const [editingHeader, setEditingHeader] = useState<string | null>(null)
+  const [editingCell, setEditingCell]     = useState<{ rowId: string; colId: string } | null>(null)
+
+  // Sync local state when parent pushes updated field props (e.g. after save + re-render)
+  useEffect(() => {
+    if (field.tableColumns?.length) setCols(field.tableColumns)
+    if (field.tableRows?.length)    setRows(field.tableRows)
+  }, [field.tableColumns, field.tableRows])
+
+  const striped  = field.tableStriped  ?? true
+  const bordered = field.tableBordered ?? true
+  const compact  = field.tableCompact  ?? false
+
+  // Notify parent whenever cols or rows change
+  const saveChange = (newCols: TableColumn[], newRows: TableRow[]) => {
+    onFieldChange?.(field.id, { tableColumns: newCols, tableRows: newRows })
+  }
+
+  const addColumn = () => {
+    const newCol: TableColumn = { id: `c_${Date.now()}`, header: 'New Column', align: 'left' }
+    const newCols = [...cols, newCol]
+    const newRows = rows.map(row => ({ ...row, cells: { ...row.cells, [newCol.id]: '' } }))
+    setCols(newCols)
+    setRows(newRows)
+    saveChange(newCols, newRows)
+  }
+
+  const addRow = () => {
+    const newRow: TableRow = {
+      id: `r_${Date.now()}`,
+      cells: cols.reduce((acc, col) => ({ ...acc, [col.id]: '' }), {}),
+    }
+    const newRows = [...rows, newRow]
+    setRows(newRows)
+    saveChange(cols, newRows)
+  }
+
+  const deleteColumn = (colId: string) => {
+    if (cols.length <= 1) return
+    const newCols = cols.filter(c => c.id !== colId)
+    const newRows = rows.map(row => {
+      const { [colId]: _, ...rest } = row.cells
+      return { ...row, cells: rest }
+    })
+    setCols(newCols)
+    setRows(newRows)
+    saveChange(newCols, newRows)
+  }
+
+  const deleteRow = (rowId: string) => {
+    if (rows.length <= 1) return
+    const newRows = rows.filter(r => r.id !== rowId)
+    setRows(newRows)
+    saveChange(cols, newRows)
+  }
+
+  const updateHeader = (colId: string, value: string) => {
+    const newCols = cols.map(c => c.id === colId ? { ...c, header: value } : c)
+    setCols(newCols)
+    return newCols   // caller uses this to avoid stale closure on commit
+  }
+
+  const commitHeader = (colId: string, latestCols: TableColumn[]) => {
+    setEditingHeader(null)
+    saveChange(latestCols, rows)   // use the passed-in latest cols, not the stale closure
+  }
+
+  const updateCell = (rowId: string, colId: string, value: string) => {
+    const newRows = rows.map(r =>
+      r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: value } } : r
+    )
+    setRows(newRows)
+    return newRows
+  }
+
+  const commitCell = (newRows: TableRow[]) => {
+    setEditingCell(null)
+    saveChange(cols, newRows)
+  }
+
+  const cellPad = compact ? 'px-2 py-1' : 'px-3 py-2'
+  const borderStyle = bordered ? '1px solid #e5e7eb' : undefined
+
+  return (
+    <div className="w-full">
+      {field.label && (
+        <p className="text-sm font-semibold text-[#374151] mb-2">{field.label}</p>
+      )}
+      <div className="w-full overflow-x-auto rounded-lg border border-[#e5e7eb]">
+        <table className="w-full text-sm text-left" style={{ borderCollapse: 'collapse' }}>
+          <thead>
+            <tr className="bg-[#f3f4f6]">
+              {cols.map(col => (
+                <th
+                  key={col.id}
+                  className={`relative group font-semibold text-[#374151] ${cellPad}`}
+                  style={{ textAlign: col.align || 'left', border: borderStyle, minWidth: 80 }}
+                >
+                  {editingHeader === col.id ? (
+                    (() => {
+                      // Track the latest cols locally so onBlur doesn't use a stale closure
+                      let latestCols = cols
+                      return (
+                        <input
+                          autoFocus
+                          className="w-full bg-transparent outline-none border-b border-[#6366f1] font-semibold text-[#374151] text-sm"
+                          defaultValue={col.header}
+                          onChange={e => { latestCols = updateHeader(col.id, e.target.value) }}
+                          onBlur={() => commitHeader(col.id, latestCols)}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                        />
+                      )
+                    })()
+                  ) : (
+                    <span
+                      className="cursor-pointer hover:text-[#6366f1] transition-colors"
+                      onClick={() => setEditingHeader(col.id)}
+                      title="Click to edit header"
+                    >
+                      {col.header || <span className="text-[#9ca3af] italic">Header</span>}
+                    </span>
+                  )}
+                  {cols.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => deleteColumn(col.id)}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-0.5 rounded"
+                      title="Delete column"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </th>
+              ))}
+              {/* Add Column button */}
+              <th className="bg-[#f3f4f6]" style={{ border: borderStyle, width: 36 }}>
+                <button
+                  type="button"
+                  onClick={addColumn}
+                  className="flex items-center justify-center w-7 h-7 mx-auto rounded-full bg-[#6366f1] hover:bg-[#4f46e5] text-white transition-colors shadow-sm"
+                  title="Add column"
+                >
+                  <Plus size={14} />
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => {
+              // track latest rows for this row's cell commits
+              let latestRows = rows
+              return (
+                <tr
+                  key={row.id}
+                  className={`group/row transition-colors hover:bg-[#f5f3ff] ${striped && ri % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'}`}
+                >
+                  {cols.map(col => (
+                    <td
+                      key={col.id}
+                      className={`text-[#374151] ${cellPad} relative`}
+                      style={{ textAlign: col.align || 'left', border: borderStyle }}
+                      onClick={() => setEditingCell({ rowId: row.id, colId: col.id })}
+                    >
+                      {editingCell?.rowId === row.id && editingCell?.colId === col.id ? (
+                        <input
+                          autoFocus
+                          className="w-full bg-transparent outline-none border-b border-[#6366f1] text-sm text-[#374151]"
+                          value={row.cells[col.id] || ''}
+                          onChange={e => { latestRows = updateCell(row.id, col.id, e.target.value) }}
+                          onBlur={() => commitCell(latestRows)}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                        />
+                      ) : (
+                        <span className="cursor-text min-h-[1em] block hover:text-[#6366f1] transition-colors" title="Click to edit">
+                          {row.cells[col.id] || <span className="text-[#d1d5db] italic text-xs">Click to edit</span>}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                  {/* Delete row button column */}
+                  <td className="text-center" style={{ border: borderStyle, width: 36 }}>
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => deleteRow(row.id)}
+                        className="opacity-0 group-hover/row:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-1 rounded"
+                        title="Delete row"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+          {/* Add Row button row */}
+          <tfoot>
+            <tr>
+              <td colSpan={cols.length + 1} className="px-3 py-2" style={{ border: borderStyle }}>
+                <button
+                  type="button"
+                  onClick={addRow}
+                  className="flex items-center gap-1.5 text-xs text-[#6366f1] hover:text-[#4f46e5] font-medium transition-colors group/addbtn"
+                >
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#eef2ff] group-hover/addbtn:bg-[#6366f1] text-[#6366f1] group-hover/addbtn:text-white transition-colors">
+                    <Plus size={11} />
+                  </span>
+                  Add row
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {field.tableCaption && (
+        <p className="text-xs text-[#9ca3af] italic mt-1.5">{field.tableCaption}</p>
+      )}
+    </div>
+  )
+}
+
 // ── Single field renderer ─────────────────────────────────────────────────────
-function FieldRenderer({ field, register, errors, watch, control }: {
-  field: FormField; register: any; errors: any; watch: any; control: any
+function FieldRenderer({ field, register, errors, watch, control, onFieldChange }: {
+  field: FormField; register: any; errors: any; watch: any; control: any; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void
 }) {
   const inputBase = `w-full px-3 py-2.5 border rounded-lg text-sm transition-colors outline-none focus:ring-2 focus:ring-[#6366f1]/20 ${errors[field.id]
       ? 'border-red-400 focus:border-red-400'
@@ -295,67 +525,7 @@ function FieldRenderer({ field, register, errors, watch, control }: {
       return <p className="text-sm text-[#374151] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
 
     case 'table': {
-      const cols: TableColumn[] = field.tableColumns?.length ? field.tableColumns : DEFAULT_TABLE_COLS
-      const rows: TableRow[]    = field.tableRows?.length    ? field.tableRows    : DEFAULT_TABLE_ROWS
-      const striped  = field.tableStriped  ?? true
-      const bordered = field.tableBordered ?? true
-      const compact  = field.tableCompact  ?? false
-
-      return (
-        <div className="w-full overflow-x-auto">
-          {field.label && (
-            <p className="text-sm font-semibold text-[#374151] mb-2">{field.label}</p>
-          )}
-          <table
-            className="w-full text-sm text-left"
-            style={{ borderCollapse: 'collapse' }}
-          >
-            <thead>
-              <tr className="bg-[#f3f4f6]">
-                {cols.map(col => (
-                  <th
-                    key={col.id}
-                    className={`font-semibold text-[#374151] ${compact ? 'px-2 py-2' : 'px-4 py-3'}`}
-                    style={{
-                      textAlign: col.align || 'left',
-                      width: col.width || undefined,
-                      border: bordered ? '1px solid #e5e7eb' : undefined,
-                    }}
-                  >
-                    {col.header || ''}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, ri) => (
-                <tr
-                  key={row.id}
-                  className={`transition-colors hover:bg-[#f5f3ff] ${striped && ri % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'}`}
-                >
-                  {cols.map(col => (
-                    <td
-                      key={col.id}
-                      className={`text-[#374151] ${compact ? 'px-2 py-1.5' : 'px-4 py-3'}`}
-                      style={{
-                        textAlign: col.align || 'left',
-                        border: bordered ? '1px solid #e5e7eb' : undefined,
-                      }}
-                    >
-                      {row.cells[col.id] || ''}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-            {field.tableCaption && (
-              <caption className="caption-bottom text-xs text-[#9ca3af] italic py-2 text-left">
-                {field.tableCaption}
-              </caption>
-            )}
-          </table>
-        </div>
-      )
+      return <EditableTable field={field} onFieldChange={onFieldChange} />
     }
 
     // ── FEEDBACK ──────────────────────────────────────────────────────────────
@@ -405,6 +575,7 @@ function FieldRenderer({ field, register, errors, watch, control }: {
                   errors={errors}
                   watch={watch}
                   control={control}
+                  onFieldChange={onFieldChange}
                 />
               ))}
             </div>
@@ -699,8 +870,8 @@ function FieldRenderer({ field, register, errors, watch, control }: {
 }
 
 // ── Sortable field wrapper ────────────────────────────────────────────────────
-function SortableField({ field, register, errors, watch, control, draggable }: {
-  field: FormField; register: any; errors: any; watch: any; control: any; draggable: boolean
+function SortableField({ field, register, errors, watch, control, draggable, onFieldChange }: {
+  field: FormField; register: any; errors: any; watch: any; control: any; draggable: boolean; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
@@ -713,13 +884,13 @@ function SortableField({ field, register, errors, watch, control, draggable }: {
           <GripVertical size={16} />
         </div>
       )}
-      <FieldRenderer field={field} register={register} errors={errors} watch={watch} control={control} />
+      <FieldRenderer field={field} register={register} errors={errors} watch={watch} control={control} onFieldChange={onFieldChange} />
     </div>
   )
 }
 
 // ── Main FormRenderer ─────────────────────────────────────────────────────────
-export default function FormRenderer({ schema, formName, onSubmit, previewOnly = false, draggable = false, onReorder }: Props) {
+export default function FormRenderer({ schema, formName, onSubmit, previewOnly = false, draggable = false, onReorder, onFieldChange }: Props) {
   const [fields, setFields] = useState<FormField[]>(schema.fields)
   const [sections, setSections] = useState<FormSection[]>(schema.sections || [])
   const [submitted, setSubmitted] = useState(false)
@@ -824,6 +995,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
                   watch={watch}
                   control={control}
                   draggable={draggable}
+                  onFieldChange={onFieldChange}
                 />
               </div>
             ))}
