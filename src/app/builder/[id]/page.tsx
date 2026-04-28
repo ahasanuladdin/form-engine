@@ -285,7 +285,7 @@ export default function EditBuilderPage() {
                   schema={{ fields, sections, settings }}
                   formName={formName}
                   onSubmit={async () => {}}
-                  previewOnly={false}
+                  previewOnly={true}
                   draggable={true}
                   onReorder={(reordered: FormField[]) => {
                     reordered.forEach((f, i) => {

@@ -397,28 +397,23 @@ function TableEditor({ field, sectionId }: { field: FormField; sectionId?: strin
             <div key={col.id} className="flex items-center gap-1.5">
               <GripVertical size={12} className="text-[var(--border)] flex-shrink-0" />
               <input
-                className="fe-input flex-1 text-xs min-w-0"
+                className="fe-input text-xs min-w-0"
+                style={{ flex: '1 1 0', minWidth: 0 }}
                 value={col.header}
                 placeholder={`Column ${i + 1}`}
                 onChange={e => updateColHeader(i, e.target.value)}
               />
               <select
-                className="fe-input w-14 text-xs flex-shrink-0"
+                className="fe-input text-xs flex-shrink-0"
+                style={{ width: 36 }}
                 value={col.align || 'left'}
                 onChange={e => updateColProp(i, { align: e.target.value as 'left' | 'center' | 'right' })}
                 title="Text alignment"
               >
-                <option value="left">⬅ L</option>
-                <option value="center">↔ C</option>
-                <option value="right">➡ R</option>
+                <option value="left">L</option>
+                <option value="center">C</option>
+                <option value="right">R</option>
               </select>
-              <input
-                className="fe-input w-16 text-xs flex-shrink-0"
-                value={col.width || ''}
-                placeholder="width"
-                title="Column width (e.g. 120px, 20%)"
-                onChange={e => updateColProp(i, { width: e.target.value })}
-              />
               <button
                 onClick={() => removeCol(i)}
                 disabled={localCols.length <= 1}

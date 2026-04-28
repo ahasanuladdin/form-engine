@@ -54,7 +54,7 @@ const DEFAULT_TABLE_ROWS: TableRow[] = [
 ]
 
 // ── Editable Table (Preview mode) ─────────────────────────────────────────────
-function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void }) {
+function EditableTable({ field, onFieldChange, previewOnly = false }: { field: FormField; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void; previewOnly?: boolean }) {
   const initCols: TableColumn[] = field.tableColumns?.length ? field.tableColumns : DEFAULT_TABLE_COLS
   const initRows: TableRow[]    = field.tableRows?.length    ? field.tableRows    : DEFAULT_TABLE_ROWS
 
@@ -158,7 +158,7 @@ function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChan
                   className={`relative group font-semibold text-[#374151] ${cellPad}`}
                   style={{ textAlign: col.align || 'left', border: borderStyle, minWidth: 80 }}
                 >
-                  {editingHeader === col.id ? (
+                  {!previewOnly && editingHeader === col.id ? (
                     (() => {
                       // Track the latest cols locally so onBlur doesn't use a stale closure
                       let latestCols = cols
@@ -175,14 +175,14 @@ function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChan
                     })()
                   ) : (
                     <span
-                      className="cursor-pointer hover:text-[#6366f1] transition-colors"
-                      onClick={() => setEditingHeader(col.id)}
-                      title="Click to edit header"
+                      className={previewOnly ? 'cursor-default' : 'cursor-pointer hover:text-[#6366f1] transition-colors'}
+                      onClick={() => { if (!previewOnly) setEditingHeader(col.id) }}
+                      title={previewOnly ? undefined : 'Click to edit header'}
                     >
                       {col.header || <span className="text-[#9ca3af] italic">Header</span>}
                     </span>
                   )}
-                  {cols.length > 1 && (
+                  {!previewOnly && cols.length > 1 && (
                     <button
                       type="button"
                       onClick={() => deleteColumn(col.id)}
@@ -195,6 +195,7 @@ function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChan
                 </th>
               ))}
               {/* Add Column button */}
+              {!previewOnly && (
               <th className="bg-[#f3f4f6]" style={{ border: borderStyle, width: 36 }}>
                 <button
                   type="button"
@@ -205,6 +206,7 @@ function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChan
                   <Plus size={14} />
                 </button>
               </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -283,8 +285,8 @@ function EditableTable({ field, onFieldChange }: { field: FormField; onFieldChan
 }
 
 // ── Single field renderer ─────────────────────────────────────────────────────
-function FieldRenderer({ field, register, errors, watch, control, onFieldChange }: {
-  field: FormField; register: any; errors: any; watch: any; control: any; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void
+function FieldRenderer({ field, register, errors, watch, control, onFieldChange, previewOnly = false }: {
+  field: FormField; register: any; errors: any; watch: any; control: any; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void; previewOnly?: boolean
 }) {
   const inputBase = `w-full px-3 py-2.5 border rounded-lg text-sm transition-colors outline-none focus:ring-2 focus:ring-[#6366f1]/20 ${errors[field.id]
       ? 'border-red-400 focus:border-red-400'
@@ -525,7 +527,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange 
       return <p className="text-sm text-[#374151] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
 
     case 'table': {
-      return <EditableTable field={field} onFieldChange={onFieldChange} />
+      return <EditableTable field={field} onFieldChange={onFieldChange} previewOnly={previewOnly} />
     }
 
     // ── FEEDBACK ──────────────────────────────────────────────────────────────
@@ -576,6 +578,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange 
                   watch={watch}
                   control={control}
                   onFieldChange={onFieldChange}
+                  previewOnly={previewOnly}
                 />
               ))}
             </div>
@@ -870,8 +873,8 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange 
 }
 
 // ── Sortable field wrapper ────────────────────────────────────────────────────
-function SortableField({ field, register, errors, watch, control, draggable, onFieldChange }: {
-  field: FormField; register: any; errors: any; watch: any; control: any; draggable: boolean; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void
+function SortableField({ field, register, errors, watch, control, draggable, onFieldChange, previewOnly = false }: {
+  field: FormField; register: any; errors: any; watch: any; control: any; draggable: boolean; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void; previewOnly?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: field.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
@@ -884,7 +887,7 @@ function SortableField({ field, register, errors, watch, control, draggable, onF
           <GripVertical size={16} />
         </div>
       )}
-      <FieldRenderer field={field} register={register} errors={errors} watch={watch} control={control} onFieldChange={onFieldChange} />
+      <FieldRenderer field={field} register={register} errors={errors} watch={watch} control={control} onFieldChange={onFieldChange} previewOnly={previewOnly} />
     </div>
   )
 }
@@ -996,6 +999,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
                   control={control}
                   draggable={draggable}
                   onFieldChange={onFieldChange}
+                  previewOnly={previewOnly}
                 />
               </div>
             ))}

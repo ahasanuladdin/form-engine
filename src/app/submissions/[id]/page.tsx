@@ -5,6 +5,22 @@ import { formsApi, submissionsApi } from '@/lib/api'
 import { Form, FormSubmission, FormField } from '@/types'
 import { ArrowLeft, Trash2, Download, BarChart2, Loader2, Inbox } from 'lucide-react'
 
+// Field types that are actual user inputs (have submission data)
+const INPUT_TYPES = new Set([
+  'text_field', 'checkbox', 'date_picker', 'radio_group', 'radio_item',
+  'select', 'switch', 'uploader',
+])
+
+// Collect ALL input fields from both top-level fields and all sections
+function collectInputFields(form: Form): FormField[] {
+  const schema = form.schema
+  const allFields: FormField[] = [
+    ...(schema.fields || []),
+    ...(schema.sections || []).flatMap(s => s.fields),
+  ]
+  return allFields.filter(f => INPUT_TYPES.has(f.type))
+}
+
 export default function SubmissionsPage() {
   const { id }  = useParams()
   const router  = useRouter()
@@ -34,23 +50,24 @@ export default function SubmissionsPage() {
 
   const exportCsv = () => {
     if (!form || !submissions.length) return
-    const fields = form.schema.fields.filter(f => !['heading','paragraph','divider'].includes(f.type))
+    const fields = collectInputFields(form)
     const header = ['ID', 'Date', ...fields.map(f => f.label)]
     const rows   = submissions.map(s => [
       s.id,
       new Date(s.created_at).toLocaleString(),
-      ...fields.map(f => s.data[f.id] ?? ''),
+      ...fields.map(f => {
+        const v = s.data[f.id]
+        return v !== undefined && v !== null ? String(v) : ''
+      }),
     ])
-    const csv    = [header, ...rows].map(r => r.join(',')).join('\n')
-    const blob   = new Blob([csv], { type: 'text/csv' })
-    const url    = URL.createObjectURL(blob)
-    const a      = document.createElement('a')
+    const csv  = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
     a.href = url; a.download = `${form.name}-submissions.csv`; a.click()
   }
 
-  const inputFields = form?.schema.fields.filter(f =>
-    !['heading','paragraph','divider'].includes(f.type)
-  ) || []
+  const inputFields = form ? collectInputFields(form) : []
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#f8fafc]">
@@ -153,18 +170,58 @@ export default function SubmissionsPage() {
             <p className="text-xs text-[#94a3b8] mb-4">
               {new Date(selected.created_at).toLocaleString()}
             </p>
-            <div className="space-y-3">
-              {inputFields.map(f => (
-                <div key={f.id}>
-                  <p className="text-xs font-medium text-[#94a3b8] mb-0.5">{f.label}</p>
-                  <p className="text-sm text-[#374151] break-words">
-                    {selected.data[f.id] !== undefined && selected.data[f.id] !== ''
-                      ? String(selected.data[f.id])
-                      : <span className="text-[#d1d5db]">—</span>
-                    }
-                  </p>
-                </div>
-              ))}
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Group by section if sections exist */}
+              {form?.schema.sections && form.schema.sections.length > 0 ? (
+                <>
+                  {form.schema.sections.map(sec => {
+                    const secFields = sec.fields.filter(f => INPUT_TYPES.has(f.type))
+                    if (!secFields.length) return null
+                    return (
+                      <div key={sec.id}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#6366f1] mb-2 mt-1">{sec.title}</p>
+                        <div className="space-y-2.5">
+                          {secFields.map(f => (
+                            <div key={f.id}>
+                              <p className="text-xs font-medium text-[#94a3b8] mb-0.5">{f.label}</p>
+                              <p className="text-sm text-[#374151] break-words">
+                                {selected.data[f.id] !== undefined && selected.data[f.id] !== ''
+                                  ? String(selected.data[f.id])
+                                  : <span className="text-[#d1d5db]">—</span>
+                                }
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {/* Top-level fields (not in any section) */}
+                  {(form.schema.fields || []).filter(f => INPUT_TYPES.has(f.type)).map(f => (
+                    <div key={f.id}>
+                      <p className="text-xs font-medium text-[#94a3b8] mb-0.5">{f.label}</p>
+                      <p className="text-sm text-[#374151] break-words">
+                        {selected.data[f.id] !== undefined && selected.data[f.id] !== ''
+                          ? String(selected.data[f.id])
+                          : <span className="text-[#d1d5db]">—</span>
+                        }
+                      </p>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                inputFields.map(f => (
+                  <div key={f.id}>
+                    <p className="text-xs font-medium text-[#94a3b8] mb-0.5">{f.label}</p>
+                    <p className="text-sm text-[#374151] break-words">
+                      {selected.data[f.id] !== undefined && selected.data[f.id] !== ''
+                        ? String(selected.data[f.id])
+                        : <span className="text-[#d1d5db]">—</span>
+                      }
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
