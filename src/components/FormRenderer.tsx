@@ -141,21 +141,21 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
   }
 
   const cellPad = compact ? 'px-2 py-1' : 'px-3 py-2'
-  const borderStyle = bordered ? '1px solid #e5e7eb' : undefined
+  const borderStyle = bordered ? '1px solid var(--border)' : undefined
 
   return (
     <div className="w-full">
       {field.label && (
-        <p className="text-sm font-semibold text-[#374151] mb-2">{field.label}</p>
+        <p className="text-sm font-semibold text-[#374151] dark:text-[#e2e8f0] dark:text-[#e2e8f0] mb-2">{field.label}</p>
       )}
-      <div className="w-full overflow-x-auto rounded-lg border border-[#e5e7eb]">
+      <div className="w-full overflow-x-auto rounded-lg border border-[#e5e7eb] dark:border-[#334155]">
         <table className="w-full text-sm text-left" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="bg-[#f3f4f6]">
+            <tr className="bg-[#f3f4f6] dark:bg-[#0f172a]">
               {cols.map(col => (
                 <th
                   key={col.id}
-                  className={`relative group font-semibold text-[#374151] ${cellPad}`}
+                  className={`relative group font-semibold text-[#374151] dark:text-[#e2e8f0] ${cellPad}`}
                   style={{ textAlign: col.align || 'left', border: borderStyle, minWidth: 80 }}
                 >
                   {!previewOnly && editingHeader === col.id ? (
@@ -165,7 +165,7 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
                       return (
                         <input
                           autoFocus
-                          className="w-full bg-transparent outline-none border-b border-[#6366f1] font-semibold text-[#374151] text-sm"
+                          className="w-full bg-transparent outline-none border-b border-[#6366f1] font-semibold text-[#374151] dark:text-[#e2e8f0] text-sm"
                           defaultValue={col.header}
                           onChange={e => { latestCols = updateHeader(col.id, e.target.value) }}
                           onBlur={() => commitHeader(col.id, latestCols)}
@@ -196,7 +196,7 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
               ))}
               {/* Add Column button */}
               {!previewOnly && (
-              <th className="bg-[#f3f4f6]" style={{ border: borderStyle, width: 36 }}>
+              <th className="bg-[#f3f4f6] dark:bg-[#0f172a]" style={{ border: borderStyle, width: 36 }}>
                 <button
                   type="button"
                   onClick={addColumn}
@@ -216,19 +216,19 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
               return (
                 <tr
                   key={row.id}
-                  className={`group/row transition-colors hover:bg-[#f5f3ff] ${striped && ri % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'}`}
+                  className={`group/row transition-colors hover:bg-[#f5f3ff] dark:hover:bg-[#312e81]/20 ${striped && ri % 2 === 1 ? 'bg-[#f9fafb] dark:bg-[#0f172a]/40' : 'bg-white dark:bg-transparent'}`}
                 >
                   {cols.map(col => (
                     <td
                       key={col.id}
-                      className={`text-[#374151] ${cellPad} relative`}
+                      className={`text-[#374151] dark:text-[#cbd5e1] ${cellPad} relative`}
                       style={{ textAlign: col.align || 'left', border: borderStyle }}
                       onClick={() => setEditingCell({ rowId: row.id, colId: col.id })}
                     >
                       {editingCell?.rowId === row.id && editingCell?.colId === col.id ? (
                         <input
                           autoFocus
-                          className="w-full bg-transparent outline-none border-b border-[#6366f1] text-sm text-[#374151]"
+                          className="w-full bg-transparent outline-none border-b border-[#6366f1] text-sm text-[#374151] dark:text-[#cbd5e1]"
                           value={row.cells[col.id] || ''}
                           onChange={e => { latestRows = updateCell(row.id, col.id, e.target.value) }}
                           onBlur={() => commitCell(latestRows)}
@@ -236,7 +236,7 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
                         />
                       ) : (
                         <span className="cursor-text min-h-[1em] block hover:text-[#6366f1] transition-colors" title="Click to edit">
-                          {row.cells[col.id] || <span className="text-[#d1d5db] italic text-xs">Click to edit</span>}
+                          {row.cells[col.id] || <span className="text-[#d1d5db] dark:text-[#475569] italic text-xs">Click to edit</span>}
                         </span>
                       )}
                     </td>
@@ -278,7 +278,7 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
         </table>
       </div>
       {field.tableCaption && (
-        <p className="text-xs text-[#9ca3af] italic mt-1.5">{field.tableCaption}</p>
+        <p className="text-xs text-[#9ca3af] dark:text-[#64748b] italic mt-1.5">{field.tableCaption}</p>
       )}
     </div>
   )
@@ -288,9 +288,9 @@ function EditableTable({ field, onFieldChange, previewOnly = false }: { field: F
 function FieldRenderer({ field, register, errors, watch, control, onFieldChange, previewOnly = false }: {
   field: FormField; register: any; errors: any; watch: any; control: any; onFieldChange?: (fieldId: string, patch: Partial<FormField>) => void; previewOnly?: boolean
 }) {
-  const inputBase = `w-full px-3 py-2.5 border rounded-lg text-sm transition-colors outline-none focus:ring-2 focus:ring-[#6366f1]/20 ${errors[field.id]
+  const inputBase = `w-full px-3 py-2.5 border rounded-lg text-sm transition-colors outline-none focus:ring-2 focus:ring-[#6366f1]/20 bg-white dark:bg-[#1e293b] text-[#0f172a] dark:text-[#f1f5f9] placeholder:text-[#94a3b8] dark:placeholder:text-[#64748b] ${errors[field.id]
       ? 'border-red-400 focus:border-red-400'
-      : 'border-[#d1d5db] focus:border-[#6366f1]'
+      : 'border-[#d1d5db] dark:border-[#334155] focus:border-[#6366f1]'
     }`
 
   const rules: any = {}
@@ -302,10 +302,10 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
   if (field.validation?.pattern) rules.pattern = { value: new RegExp(field.validation.pattern), message: 'Invalid format' }
 
   const FieldLabel = () => (
-    <label className="block text-sm font-medium text-[#374151] mb-1.5">
+    <label className="block text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1.5">
       {field.label}
       {field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
-      {field.helpText && <span className="text-xs text-[#9ca3af] ml-2 font-normal">{field.helpText}</span>}
+      {field.helpText && <span className="text-xs text-[#9ca3af] dark:text-[#64748b] ml-2 font-normal">{field.helpText}</span>}
     </label>
   )
   const FieldError = () => errors[field.id]
@@ -372,7 +372,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
           <div className="flex items-center gap-2.5">
             <input type="checkbox" id={field.id} {...register(field.id, rules)}
               className="w-4 h-4 rounded border-[#d1d5db] text-[#6366f1] focus:ring-[#6366f1]/30 cursor-pointer" />
-            <label htmlFor={field.id} className="text-sm text-[#374151] cursor-pointer">
+            <label htmlFor={field.id} className="text-sm text-[#374151] dark:text-[#cbd5e1] cursor-pointer">
               {field.label}{field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
           </div>
@@ -384,7 +384,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
       return (
         <div>
           <FieldLabel />
-          <input type="date" className={inputBase} {...register(field.id, rules)} />
+          <input type="date" className={inputBase + ' dark:[color-scheme:dark]'} {...register(field.id, rules)} />
           <FieldError />
         </div>
       )
@@ -399,7 +399,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
                 <input type="radio" id={`${field.id}-${opt.value}`} value={opt.value}
                   {...register(field.id, rules)}
                   className="w-4 h-4 border-[#d1d5db] text-[#6366f1] cursor-pointer" />
-                <label htmlFor={`${field.id}-${opt.value}`} className="text-sm text-[#374151] cursor-pointer">{opt.label}</label>
+                <label htmlFor={`${field.id}-${opt.value}`} className="text-sm text-[#374151] dark:text-[#cbd5e1] cursor-pointer">{opt.label}</label>
               </div>
             ))}
           </div>
@@ -412,7 +412,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
         <div className="flex items-center gap-2.5">
           <input type="radio" id={field.id} {...register(field.id, rules)}
             className="w-4 h-4 border-[#d1d5db] text-[#6366f1] cursor-pointer" />
-          <label htmlFor={field.id} className="text-sm text-[#374151] cursor-pointer">{field.label || 'Radio item'}</label>
+          <label htmlFor={field.id} className="text-sm text-[#374151] dark:text-[#cbd5e1] cursor-pointer">{field.label || 'Radio item'}</label>
           <FieldError />
         </div>
       )
@@ -473,11 +473,11 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
       return (
         <div>
           <FieldLabel />
-          <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-[#d1d5db] rounded-lg p-6 bg-[#f9fafb] cursor-pointer hover:border-[#6366f1] hover:bg-[#f5f3ff] transition-colors">
+          <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-[#d1d5db] dark:border-[#334155] rounded-lg p-6 bg-[#f9fafb] dark:bg-[#1e293b] cursor-pointer hover:border-[#6366f1] hover:bg-[#f5f3ff] transition-colors">
             <svg className="w-8 h-8 text-[#9ca3af] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            <span className="text-sm text-[#9ca3af]">Click to upload or drag and drop</span>
+            <span className="text-sm text-[#9ca3af] dark:text-[#64748b]">Click to upload or drag and drop</span>
             <input type="file" className="hidden" {...register(field.id, rules)} />
           </label>
           <FieldError />
@@ -488,7 +488,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'list':
       return (
-        <ul className="space-y-1.5 text-sm text-[#374151] list-disc list-inside">
+        <ul className="space-y-1.5 text-sm text-[#374151] dark:text-[#cbd5e1] list-disc list-inside">
           <li>List item one</li>
           <li>List item two</li>
           <li>List item three</li>
@@ -497,7 +497,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'list_item':
       return (
-        <div className="flex items-center gap-2 text-sm text-[#374151]">
+        <div className="flex items-center gap-2 text-sm text-[#374151] dark:text-[#cbd5e1]">
           <div className="w-1.5 h-1.5 rounded-full bg-[#6366f1] flex-shrink-0" />
           <span>{field.label || 'List item'}</span>
         </div>
@@ -507,7 +507,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
       const [open, setOpen] = useState(false)
       return (
         <div className="inline-flex items-center gap-2">
-          <span className="text-sm text-[#374151]">{field.label || 'Hover for info'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Hover for info'}</span>
           <div className="relative"
             onMouseEnter={() => setOpen(true)}
             onMouseLeave={() => setOpen(false)}>
@@ -524,7 +524,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
     }
 
     case 'typography':
-      return <p className="text-sm text-[#374151] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
+      return <p className="text-sm text-[#374151] dark:text-[#cbd5e1] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
 
     case 'table': {
       return <EditableTable field={field} onFieldChange={onFieldChange} previewOnly={previewOnly} />
@@ -544,7 +544,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
               strokeLinecap="round" transform="rotate(-90 24 24)" />
             <text x="24" y="28" textAnchor="middle" fill="#374151" fontSize="10" fontWeight="600">{pct}%</text>
           </svg>
-          <span className="text-sm text-[#374151]">{field.label || 'Loading...'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Loading...'}</span>
         </div>
       )
     }
@@ -554,7 +554,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
         <div>
           <div className="flex justify-between mb-1.5">
             <span className="text-sm font-medium text-[#374151]">{field.label || 'Progress'}</span>
-            <span className="text-xs text-[#9ca3af]">75%</span>
+            <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">75%</span>
           </div>
           <div className="w-full h-2.5 bg-[#e5e7eb] rounded-full overflow-hidden">
             <div className="h-full bg-[#6366f1] rounded-full transition-all" style={{ width: '75%' }} />
@@ -584,7 +584,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
             </div>
           ) : (
             <div className="flex items-center justify-center min-h-[48px]">
-              <span className="text-xs text-[#9ca3af]">{field.label || 'Box'}</span>
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">{field.label || 'Box'}</span>
             </div>
           )}
         </div>
@@ -605,7 +605,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
             <span className="text-[#9ca3af] text-xl leading-none cursor-pointer hover:text-[#374151]">×</span>
           </div>
           <div className="px-4 py-4">
-            <p className="text-sm text-[#64748b]">Dialog content area</p>
+            <p className="text-sm text-[#64748b] dark:text-[#94a3b8]">Dialog content area</p>
           </div>
           <div className="px-4 py-3 border-t border-[#e5e7eb] bg-[#f9fafb] flex justify-end gap-2">
             <button type="button" className="px-3 py-1.5 text-xs border border-[#d1d5db] rounded-lg text-[#374151] hover:bg-[#f1f5f9] transition-colors">Cancel</button>
@@ -618,8 +618,8 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
       return (
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-10 bg-[#f1f5f9] border border-[#e5e7eb] rounded-lg flex items-center px-3">
-              <span className="text-xs text-[#9ca3af]">Stack item {i}</span>
+            <div key={i} className="h-10 bg-[#f1f5f9] border border-[#e5e7eb] dark:border-[#334155] rounded-lg flex items-center px-3">
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">Stack item {i}</span>
             </div>
           ))}
         </div>
@@ -629,9 +629,9 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'card':
       return (
-        <div className="border border-[#e5e7eb] rounded-xl p-4 bg-white shadow-sm">
-          <p className="text-sm font-semibold text-[#374151] mb-1">{field.label || 'Card title'}</p>
-          <p className="text-xs text-[#9ca3af]">{field.placeholder || 'Card content goes here.'}</p>
+        <div className="border border-[#e5e7eb] dark:border-[#334155] rounded-xl p-4 bg-white shadow-sm">
+          <p className="text-sm font-semibold text-[#374151] dark:text-[#e2e8f0] dark:text-[#e2e8f0] mb-1">{field.label || 'Card title'}</p>
+          <p className="text-xs text-[#9ca3af] dark:text-[#64748b]">{field.placeholder || 'Card content goes here.'}</p>
         </div>
       )
 
@@ -670,7 +670,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'form_label':
       return (
-        <label className="block text-sm font-medium text-[#374151]">
+        <label className="block text-sm font-medium text-[#374151] dark:text-[#cbd5e1]">
           {field.label || 'Form label'}
           {field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
@@ -700,7 +700,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
     case 'slot':
       return (
         <div className="border-2 border-dashed border-[#9ca3af] rounded-lg p-4 min-h-[60px] flex items-center justify-center bg-[#f9fafb]">
-          <span className="text-xs text-[#9ca3af] font-mono">{field.label || '{ Slot }'}</span>
+          <span className="text-xs text-[#9ca3af] dark:text-[#64748b] font-mono">{field.label || '{ Slot }'}</span>
         </div>
       )
 
@@ -720,12 +720,12 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
           <FieldLabel />
           <div className="space-y-2">
             {[1, 2].map(i => (
-              <div key={i} className="flex items-center gap-2 p-2.5 border border-[#e5e7eb] rounded-lg bg-[#f9fafb]">
+              <div key={i} className="flex items-center gap-2 p-2.5 border border-[#e5e7eb] dark:border-[#334155] rounded-lg bg-[#f9fafb]">
                 <div className="flex-1 h-6 bg-[#e5e7eb] rounded" />
                 <button type="button" className="w-6 h-6 flex items-center justify-center text-[#9ca3af] hover:text-red-400 transition-colors text-lg leading-none">×</button>
               </div>
             ))}
-            <button type="button" className="w-full py-2 border border-dashed border-[#d1d5db] rounded-lg text-xs text-[#9ca3af] hover:border-[#6366f1] hover:text-[#6366f1] transition-colors">
+            <button type="button" className="w-full py-2 border border-dashed border-[#d1d5db] rounded-lg text-xs text-[#9ca3af] dark:text-[#64748b] hover:border-[#6366f1] hover:text-[#6366f1] transition-colors">
               + Add item
             </button>
           </div>
@@ -746,11 +746,11 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setOpen(false)}>
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
                 <div className="px-5 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-[#0f172a]">{field.label || 'Modal Title'}</h3>
+                  <h3 className="text-base font-semibold text-[#0f172a] dark:text-[#f1f5f9]">{field.label || 'Modal Title'}</h3>
                   <button type="button" onClick={() => setOpen(false)} className="text-[#9ca3af] hover:text-[#374151] text-xl leading-none transition-colors">×</button>
                 </div>
                 <div className="px-5 py-5">
-                  <p className="text-sm text-[#64748b]">{field.placeholder || 'Modal body content goes here.'}</p>
+                  <p className="text-sm text-[#64748b] dark:text-[#94a3b8]">{field.placeholder || 'Modal body content goes here.'}</p>
                 </div>
                 <div className="px-5 py-4 border-t border-[#e5e7eb] bg-[#f9fafb] flex justify-end gap-2 rounded-b-xl">
                   <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm border border-[#d1d5db] rounded-lg text-[#374151] hover:bg-[#f1f5f9] transition-colors">Cancel</button>
@@ -777,7 +777,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
       }
       const Tag = `h${lvl}` as React.ElementType
       return (
-        <Tag className={`${sizeMap[lvl]} text-[#0f172a] leading-tight`}>
+        <Tag className={`${sizeMap[lvl]} text-[#0f172a] dark:text-[#f1f5f9] leading-tight`}>
           {field.content || field.label || `Heading ${lvl}`}
         </Tag>
       )
@@ -785,15 +785,15 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'paragraph':
       return (
-        <p className="text-base text-[#374151] leading-relaxed">
+        <p className="text-base text-[#374151] dark:text-[#cbd5e1] leading-relaxed">
           {field.content || field.label || ''}
         </p>
       )
 
     case 'blockquote':
       return (
-        <blockquote className="border-l-4 border-[#6366f1] pl-4 py-1 bg-[#f5f3ff] rounded-r-lg">
-          <p className="text-sm italic text-[#4b5563] leading-relaxed">
+        <blockquote className="border-l-4 border-[#6366f1] pl-4 py-1 bg-[#f5f3ff] dark:bg-[#312e81]/20 rounded-r-lg">
+          <p className="text-sm italic text-[#4b5563] dark:text-[#94a3b8] leading-relaxed">
             {field.content || field.label || ''}
           </p>
         </blockquote>
@@ -816,8 +816,8 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
     case 'ordered_list':
       return (
         <div>
-          {field.label && <p className="text-sm font-medium text-[#374151] mb-1.5">{field.label}</p>}
-          <ol className="list-decimal list-inside space-y-1 text-sm text-[#374151]">
+          {field.label && <p className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1.5">{field.label}</p>}
+          <ol className="list-decimal list-inside space-y-1 text-sm text-[#374151] dark:text-[#cbd5e1]">
             {(field.content || '').split('\n').filter(Boolean).map((item, i) => (
               <li key={i} className="leading-relaxed">{item}</li>
             ))}
@@ -828,8 +828,8 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
     case 'unordered_list':
       return (
         <div>
-          {field.label && <p className="text-sm font-medium text-[#374151] mb-1.5">{field.label}</p>}
-          <ul className="list-disc list-inside space-y-1 text-sm text-[#374151]">
+          {field.label && <p className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1.5">{field.label}</p>}
+          <ul className="list-disc list-inside space-y-1 text-sm text-[#374151] dark:text-[#cbd5e1]">
             {(field.content || '').split('\n').filter(Boolean).map((item, i) => (
               <li key={i} className="leading-relaxed">{item}</li>
             ))}
@@ -843,7 +843,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
           {field.label ? (
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-[#e5e7eb]" />
-              <span className="text-xs text-[#9ca3af] font-medium">{field.label}</span>
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b] font-medium">{field.label}</span>
               <div className="flex-1 h-px bg-[#e5e7eb]" />
             </div>
           ) : (
@@ -854,7 +854,7 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
 
     case 'caption':
       return (
-        <p className="text-xs text-[#9ca3af] leading-relaxed italic">
+        <p className="text-xs text-[#9ca3af] dark:text-[#64748b] leading-relaxed italic">
           {field.content || field.label || ''}
         </p>
       )
@@ -898,6 +898,8 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
   const [sections, setSections] = useState<FormSection[]>(schema.sections || [])
   const [submitted, setSubmitted] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  // 'untouched' | 'complete' | 'incomplete'
+  const [stepStatuses, setStepStatuses] = useState<Record<number, 'untouched' | 'complete' | 'incomplete'>>({})
   const prevSchemaRef = useRef<string>('')
 
   useEffect(() => {
@@ -913,7 +915,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
 
   const defaults = buildDefaults(fields)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset, control } = useForm({ defaultValues: defaults })
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset, control, getValues, trigger } = useForm({ defaultValues: defaults })
 
   useEffect(() => { reset(buildDefaults(fields)) }, [fields])
 
@@ -944,10 +946,10 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-[#0f172a] mb-2">Thank you!</h3>
-        <p className="text-[#64748b] text-sm">{schema.settings?.successMessage}</p>
+        <h3 className="text-xl font-bold text-[#0f172a] dark:text-[#f1f5f9] mb-2">Thank you!</h3>
+        <p className="text-[#64748b] dark:text-[#94a3b8] text-sm">{schema.settings?.successMessage}</p>
         <button onClick={() => setSubmitted(false)}
-          className="mt-6 px-5 py-2 border border-[#e2e8f0] rounded-lg text-sm text-[#64748b] hover:bg-[#f8fafc] transition-colors">
+          className="mt-6 px-5 py-2 border border-[#e2e8f0] dark:border-[#334155] rounded-lg text-sm text-[#64748b] dark:text-[#94a3b8] hover:bg-[#f8fafc] dark:hover:bg-[#1e293b] transition-colors">
           Submit another response
         </button>
       </div>
@@ -1014,40 +1016,81 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
   const totalSteps = sections.length
   const isLastStep = currentStep === totalSteps - 1
 
+  // Check whether all required fields in a given step are filled
+  const evaluateStepStatus = (stepIdx: number): 'complete' | 'incomplete' => {
+    const sec = sections[stepIdx]
+    if (!sec) return 'complete'
+    const values = getValues()
+    const hasUnfilled = sec.fields.some(f => {
+      if (!f.validation?.required) return false
+      const val = values[f.id]
+      if (val === undefined || val === null || val === '' || val === false) return true
+      if (Array.isArray(val) && val.length === 0) return true
+      return false
+    })
+    return hasUnfilled ? 'incomplete' : 'complete'
+  }
+
+  // Navigate to a step, recording the current step's status first
+  const navigateToStep = (targetIdx: number) => {
+    const status = evaluateStepStatus(currentStep)
+    setStepStatuses(prev => ({ ...prev, [currentStep]: status }))
+    setCurrentStep(targetIdx)
+  }
+
   const StepperBar = () => (
     <div className="mb-8 overflow-x-auto">
       <div className="flex items-start min-w-max">
         {sections.map((sec, idx) => {
           const isActive = idx === currentStep
-          const isCompleted = idx < currentStep
+          const status = stepStatuses[idx] // 'complete' | 'incomplete' | undefined (untouched)
+          const isCompleted = status === 'complete'
+          const isIncomplete = status === 'incomplete'
           return (
             <React.Fragment key={sec.id}>
               {/* Step circle + label */}
               <button
                 type="button"
-                onClick={() => setCurrentStep(idx)}
+                onClick={() => navigateToStep(idx)}
                 className="flex flex-col items-center gap-1.5 focus:outline-none flex-shrink-0"
-                style={{ minWidth: 64, maxWidth: 80 }}
+                style={{ minWidth: 56, maxWidth: 72, width: 72 }}
               >
                 <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all flex-shrink-0 ${isCompleted
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all flex-shrink-0 ${
+                    isCompleted
                       ? 'bg-[var(--brand,#6366f1)] border-[var(--brand,#6366f1)] text-white'
-                      : isActive
-                        ? 'bg-white border-[var(--brand,#6366f1)] text-[var(--brand,#6366f1)] shadow-md shadow-[var(--brand,#6366f1)]/20'
-                        : 'bg-white border-[#d1d5db] text-[#94a3b8]'
-                    }`}
+                      : isIncomplete
+                        ? 'bg-yellow-400 border-yellow-400 text-white'
+                        : isActive
+                          ? 'bg-white dark:bg-[#1e293b] border-[var(--brand,#6366f1)] text-[var(--brand,#6366f1)] shadow-md shadow-[var(--brand,#6366f1)]/20'
+                          : 'bg-white dark:bg-[#1e293b] border-[#d1d5db] dark:border-[#334155] text-[#94a3b8] dark:text-[#475569]'
+                  }`}
                 >
                   {isCompleted ? (
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
+                  ) : isIncomplete ? (
+                    <span className="text-white font-bold text-base leading-none">?</span>
                   ) : (
                     idx + 1
                   )}
                 </div>
                 <span
-                  className={`text-xs font-medium text-center leading-tight transition-colors break-words w-full ${isActive ? 'text-[var(--brand,#6366f1)]' : isCompleted ? 'text-[#374151]' : 'text-[#94a3b8]'
-                    }`}
+                  className={`text-center leading-tight transition-colors w-full ${
+                    isActive ? 'text-[var(--brand,#6366f1)]' : isCompleted ? 'text-[#374151] dark:text-[#e2e8f0]' : isIncomplete ? 'text-yellow-500' : 'text-[#94a3b8]'
+                  }`}
+                  style={{
+                    fontSize: sec.title.length > 12 ? '9px' : sec.title.length > 8 ? '10px' : '11px',
+                    fontWeight: 500,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as const,
+                    overflow: 'hidden',
+                    wordBreak: 'break-word',
+                    hyphens: 'auto',
+                  }}
+                  title={sec.title}
                 >
                   {sec.title}
                 </span>
@@ -1055,7 +1098,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
 
               {/* Connector line (not after last) — sits at circle height (top 18px = half of h-9=36px) */}
               {idx < totalSteps - 1 && (
-                <div className="flex-shrink-0 flex-1 h-0.5 mx-2 rounded-full transition-all" style={{ marginTop: 18, minWidth: 12, background: idx < currentStep ? 'var(--brand,#6366f1)' : '#e2e8f0' }}
+                <div className="flex-shrink-0 flex-1 h-0.5 mx-2 rounded-full transition-all" style={{ marginTop: 18, minWidth: 12, background: idx < currentStep ? 'var(--brand,#6366f1)' : '#334155' }}
                 />
               )}
             </React.Fragment>
@@ -1070,13 +1113,13 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
     <>
       {sections.map(section => (
         <div key={section.id} className="mb-8">
-          <div className="mb-4 pb-3 border-b-2 border-[var(--brand,#6366f1)]/20">
+          <div className="mb-4 pb-3 border-b-2 border-[var(--brand,#6366f1)]/20 dark:border-[var(--brand,#6366f1)]/30">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 rounded-full bg-[var(--brand,#6366f1)]" />
-              <h2 className="text-base font-semibold text-[#0f172a] dark:text-white">{section.title}</h2>
+              <h2 className="text-base font-semibold text-[#0f172a] dark:text-[#f1f5f9] dark:text-white">{section.title}</h2>
             </div>
             {section.description && (
-              <p className="text-sm text-[#64748b] mt-1 ml-3">{section.description}</p>
+              <p className="text-sm text-[#64748b] dark:text-[#94a3b8] mt-1 ml-3">{section.description}</p>
             )}
           </div>
           {section.fields.length > 0
@@ -1104,7 +1147,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
         return (
           <div>
             {sec.description && (
-              <p className="text-sm text-[#64748b] mb-4">{sec.description}</p>
+              <p className="text-sm text-[#64748b] dark:text-[#94a3b8] mb-4">{sec.description}</p>
             )}
             {sec.fields.length > 0
               ? renderFieldList(sec.fields)
@@ -1120,12 +1163,12 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
       )}
 
       {/* Navigation buttons */}
-      <div className="flex justify-between mt-8 pt-4 border-t border-[#f1f5f9]">
+      <div className="flex justify-between mt-8 pt-4 border-t border-[#f1f5f9] dark:border-[#1e293b]">
         <button
           type="button"
           disabled={currentStep === 0}
           onClick={() => setCurrentStep(s => s - 1)}
-          className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[#e2e8f0] text-[#374151] hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[#e2e8f0] dark:border-[#334155] text-[#374151] dark:text-[#cbd5e1] hover:bg-[#f8fafc] dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           ← Back
         </button>
@@ -1140,7 +1183,7 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
         ) : (
           <button
             type="button"
-            onClick={() => setCurrentStep(s => s + 1)}
+            onClick={() => navigateToStep(currentStep + 1)}
             className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-[var(--brand,#6366f1)] text-white hover:bg-[#4f46e5] transition-colors shadow-sm"
           >
             Next →

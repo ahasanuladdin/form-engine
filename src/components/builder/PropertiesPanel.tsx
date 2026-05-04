@@ -511,7 +511,7 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
         <div className="flex gap-1 mb-4 bg-[#f1f5f9] p-1 rounded-lg">
           {(['general', 'validation'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${tab === t ? 'bg-white text-[#0f172a] shadow-sm' : 'text-[#64748b] hover:text-[#374151]'}`}>
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${tab === t ? 'bg-white dark:bg-[#334155] text-[#0f172a] dark:text-[#f1f5f9] shadow-sm' : 'text-[#64748b] dark:text-[#94a3b8] hover:text-[#374151] dark:hover:text-[#cbd5e1]'}`}>
               {t}
             </button>
           ))}
@@ -612,7 +612,7 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
                 <div className="grid grid-cols-2 gap-1.5">
                   {([
                     { key: 'primary',   label: 'Primary',   cls: 'bg-[#6366f1] text-white' },
-                    { key: 'secondary', label: 'Secondary', cls: 'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]' },
+                    { key: 'secondary', label: 'Secondary', cls: 'bg-[#f1f5f9] dark:bg-[#1e293b] text-[#374151] dark:text-[#cbd5e1] border border-[#e2e8f0] dark:border-[#334155]' },
                     { key: 'outline',   label: 'Outline',   cls: 'border border-[#6366f1] text-[#6366f1]' },
                     { key: 'danger',    label: 'Danger',    cls: 'bg-red-500 text-white' },
                   ] as const).map(({ key, label, cls }) => (

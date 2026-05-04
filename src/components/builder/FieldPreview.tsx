@@ -45,14 +45,14 @@ function buildInputStyle(s?: FieldStyle): React.CSSProperties {
 
 function Label({ field }: Props) {
   return (
-    <label className="block text-sm font-medium text-[#374151] mb-1.5" style={buildLabelStyle(field.style)}>
+    <label className="block text-sm font-medium text-[#374151] dark:text-[#cbd5e1] dark:text-[#cbd5e1] mb-1.5" style={buildLabelStyle(field.style)}>
       {field.label || 'Label'}
       {field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
   )
 }
 
-const inputBase = "w-full px-3 py-2 border border-[#d1d5db] rounded-lg text-sm text-[#374151] bg-[#f9fafb] placeholder-[#9ca3af] focus:outline-none"
+const inputBase = "w-full px-3 py-2 border border-[#d1d5db] dark:border-[#334155] rounded-lg text-sm text-[#374151] dark:text-[#cbd5e1] dark:text-[#cbd5e1] bg-[#f9fafb] dark:bg-[#1e293b] placeholder-[#9ca3af] dark:placeholder-[#64748b] focus:outline-none"
 
 const DEFAULT_TABLE_COLS: TableColumn[] = [
   { id: 'c1', header: '', align: 'left' },
@@ -90,7 +90,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'button': {
       const variantStyles: Record<string, string> = {
         primary:   'bg-[#6366f1] text-white border-transparent',
-        secondary: 'bg-[#f1f5f9] text-[#374151] border-[#e2e8f0]',
+        secondary: 'bg-[#f1f5f9] dark:bg-[#1e293b] text-[#374151] dark:text-[#cbd5e1] border-[#e2e8f0] dark:border-[#334155]',
         outline:   'bg-transparent text-[#6366f1] border-[#6366f1]',
         danger:    'bg-red-500 text-white border-transparent',
       }
@@ -113,15 +113,15 @@ export default function FieldPreview({ field, sectionId }: Props) {
         : [{ label: 'Primary', value: 'primary' }, { label: 'Secondary', value: 'secondary' }, { label: 'Outline', value: 'outline' }]
       const variantStyles: Record<string, string> = {
         primary:   'bg-[#6366f1] text-white',
-        secondary: 'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
+        secondary: 'bg-[#f1f5f9] dark:bg-[#1e293b] text-[#374151] dark:text-[#cbd5e1] border border-[#e2e8f0] dark:border-[#334155]',
         outline:   'bg-transparent text-[#6366f1] border border-[#6366f1]',
         danger:    'bg-red-500 text-white',
       }
       const fallbackStyles = [
         'bg-[#6366f1] text-white',
-        'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
+        'bg-[#f1f5f9] dark:bg-[#1e293b] text-[#374151] dark:text-[#cbd5e1] border border-[#e2e8f0] dark:border-[#334155]',
         'bg-transparent text-[#6366f1] border border-[#6366f1]',
-        'bg-[#f1f5f9] text-[#374151] border border-[#e2e8f0]',
+        'bg-[#f1f5f9] dark:bg-[#1e293b] text-[#374151] dark:text-[#cbd5e1] border border-[#e2e8f0] dark:border-[#334155]',
       ]
       return (
         <div style={wrapStyle} className="flex flex-col gap-2">
@@ -144,8 +144,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'checkbox':
       return (
         <div className="flex items-center gap-2.5" style={wrapStyle}>
-          <div className="w-4 h-4 rounded border-2 border-[#d1d5db] bg-[#f9fafb]" />
-          <span className="text-sm text-[#374151]" style={buildLabelStyle(s)}>{field.label || 'Checkbox'}</span>
+          <div className="w-4 h-4 rounded border-2 border-[#d1d5db] dark:border-[#334155] bg-[#f9fafb] dark:bg-[#1e293b]" />
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>{field.label || 'Checkbox'}</span>
         </div>
       )
 
@@ -154,7 +154,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
         <div style={wrapStyle}>
           <Label field={field} />
           <input readOnly className={inputBase} style={inputStyle} type="date" />
-          {field.helpText && <p className="text-xs text-[#9ca3af] mt-1">{field.helpText}</p>}
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
 
@@ -165,8 +165,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
           <div className="space-y-1.5">
             {(field.options?.length ? field.options : [{ label: 'Option 1', value: '1' }, { label: 'Option 2', value: '2' }]).map(o => (
               <div key={o.value} className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full border-2 border-[#d1d5db] bg-[#f9fafb]" />
-                <span className="text-sm text-[#374151]">{o.label}</span>
+                <div className="w-4 h-4 rounded-full border-2 border-[#d1d5db] dark:border-[#334155] bg-[#f9fafb] dark:bg-[#1e293b]" />
+                <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{o.label}</span>
               </div>
             ))}
           </div>
@@ -176,10 +176,10 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'radio_item':
       return (
         <div className="flex items-center gap-2.5" style={wrapStyle}>
-          <div className="w-4 h-4 rounded-full border-2 border-[#6366f1] bg-[#f9fafb] flex items-center justify-center">
+          <div className="w-4 h-4 rounded-full border-2 border-[#6366f1] bg-[#f9fafb] dark:bg-[#1e293b] flex items-center justify-center">
             <div className="w-2 h-2 rounded-full bg-[#6366f1]" />
           </div>
-          <span className="text-sm text-[#374151]" style={buildLabelStyle(s)}>{field.label || 'Radio item'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>{field.label || 'Radio item'}</span>
         </div>
       )
 
@@ -191,7 +191,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
             <option>{field.placeholder || 'Select an option'}</option>
             {field.options?.map(o => <option key={o.value}>{o.label}</option>)}
           </select>
-          {field.helpText && <p className="text-xs text-[#9ca3af] mt-1">{field.helpText}</p>}
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
 
@@ -199,9 +199,9 @@ export default function FieldPreview({ field, sectionId }: Props) {
       return (
         <div className="flex items-center gap-3" style={wrapStyle}>
           <div className="w-10 h-6 rounded-full bg-[#6366f1] relative flex items-center px-0.5 justify-end">
-            <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+            <div className="w-5 h-5 rounded-full bg-white dark:bg-[#94a3b8] shadow-sm" />
           </div>
-          <span className="text-sm text-[#374151]" style={buildLabelStyle(s)}>{field.label || 'Switch'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>{field.label || 'Switch'}</span>
         </div>
       )
 
@@ -210,7 +210,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
         <div style={wrapStyle}>
           <Label field={field} />
           <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={field.placeholder || 'Enter text...'} />
-          {field.helpText && <p className="text-xs text-[#9ca3af] mt-1">{field.helpText}</p>}
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
 
@@ -218,10 +218,10 @@ export default function FieldPreview({ field, sectionId }: Props) {
       return (
         <div style={wrapStyle}>
           <Label field={field} />
-          <div className="border-2 border-dashed border-[#d1d5db] rounded-lg p-4 text-center bg-[#f9fafb]">
-            <p className="text-xs text-[#9ca3af]">Click to upload or drag and drop</p>
+          <div className="border-2 border-dashed border-[#d1d5db] dark:border-[#334155] rounded-lg p-4 text-center bg-[#f9fafb] dark:bg-[#1e293b]">
+            <p className="text-xs text-[#9ca3af] dark:text-[#64748b]">Click to upload or drag and drop</p>
           </div>
-          {field.helpText && <p className="text-xs text-[#9ca3af] mt-1">{field.helpText}</p>}
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
 
@@ -231,7 +231,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
       return (
         <div style={wrapStyle}>
           <Label field={field} />
-          <ul className="space-y-1 text-sm text-[#374151] list-disc list-inside">
+          <ul className="space-y-1 text-sm text-[#374151] dark:text-[#cbd5e1] list-disc list-inside">
             <li>List item one</li>
             <li>List item two</li>
             <li>List item three</li>
@@ -241,7 +241,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'list_item':
       return (
-        <div className="flex items-center gap-2 text-sm text-[#374151]" style={wrapStyle}>
+        <div className="flex items-center gap-2 text-sm text-[#374151] dark:text-[#cbd5e1]" style={wrapStyle}>
           <div className="w-1.5 h-1.5 rounded-full bg-[#6366f1]" />
           <span>{field.label || 'List item'}</span>
         </div>
@@ -250,7 +250,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'tooltip':
       return (
         <div className="inline-flex items-center gap-2" style={wrapStyle}>
-          <span className="text-sm text-[#374151]">{field.label || 'Hover me'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Hover me'}</span>
           <div className="relative group cursor-default">
             <div className="w-4 h-4 rounded-full bg-[#6366f1] text-white text-[10px] flex items-center justify-center font-bold">?</div>
             <div className="absolute left-1/2 -translate-x-1/2 bottom-6 bg-[#1e293b] text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none">
@@ -263,7 +263,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'typography':
       return (
         <div style={wrapStyle}>
-          <p className="text-sm text-[#374151] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
+          <p className="text-sm text-[#374151] dark:text-[#cbd5e1] leading-relaxed">{field.content || field.label || 'Typography text'}</p>
         </div>
       )
 
@@ -277,22 +277,22 @@ export default function FieldPreview({ field, sectionId }: Props) {
       return (
         <div style={wrapStyle} className="w-full overflow-x-auto">
           {field.label && (
-            <p className="text-sm font-semibold text-[#374151] mb-2">{field.label}</p>
+            <p className="text-sm font-semibold text-[#374151] dark:text-[#e2e8f0] dark:text-[#e2e8f0] mb-2">{field.label}</p>
           )}
           <table
             className="w-full text-xs text-left"
             style={{ borderCollapse: 'collapse' }}
           >
             <thead>
-              <tr className="bg-[#f3f4f6]">
+              <tr className="bg-[#f3f4f6] dark:bg-[#0f172a]">
                 {cols.map(col => (
                   <th
                     key={col.id}
-                    className={`relative group/col font-semibold text-[#374151] ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}
+                    className={`relative group/col font-semibold text-[#374151] dark:text-[#e2e8f0] ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}
                     style={{
                       textAlign: col.align || 'left',
                       width: col.width || undefined,
-                      border: bordered ? '1px solid #e5e7eb' : undefined,
+                      border: bordered ? '1px solid var(--border)' : undefined,
                     }}
                   >
                     {col.header || <span className="text-[#9ca3af] font-normal italic">Column</span>}
@@ -314,15 +314,15 @@ export default function FieldPreview({ field, sectionId }: Props) {
               {rows.map((row, ri) => (
                 <tr
                   key={row.id}
-                  className={striped && ri % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'}
+                  className={striped && ri % 2 === 1 ? 'bg-[#f9fafb] dark:bg-[#0f172a]/40' : 'bg-white dark:bg-transparent'}
                 >
                   {cols.map(col => (
                     <td
                       key={col.id}
-                      className={`text-[#374151] ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}
+                      className={`text-[#374151] dark:text-[#cbd5e1] ${compact ? 'px-2 py-1' : 'px-3 py-2'}`}
                       style={{
                         textAlign: col.align || 'left',
-                        border: bordered ? '1px solid #e5e7eb' : undefined,
+                        border: bordered ? '1px solid var(--border)' : undefined,
                       }}
                     >
                       {row.cells[col.id] || ''}
@@ -332,7 +332,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
               ))}
             </tbody>
             {field.tableCaption && (
-              <caption className="caption-bottom text-xs text-[#9ca3af] italic mt-1 py-1 text-left">
+              <caption className="caption-bottom text-xs text-[#9ca3af] dark:text-[#64748b] italic mt-1 py-1 text-left">
                 {field.tableCaption}
               </caption>
             )}
@@ -353,7 +353,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
               transform="rotate(-90 24 24)" />
             <text x="24" y="28" textAnchor="middle" className="text-xs" fill="#374151" fontSize="10">75%</text>
           </svg>
-          <span className="text-sm text-[#374151]">{field.label || 'Circular progress'}</span>
+          <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Circular progress'}</span>
         </div>
       )
 
@@ -361,8 +361,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
       return (
         <div style={wrapStyle}>
           <div className="flex justify-between mb-1">
-            <span className="text-sm text-[#374151]">{field.label || 'Progress'}</span>
-            <span className="text-xs text-[#9ca3af]">75%</span>
+            <span className="text-sm text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Progress'}</span>
+            <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">75%</span>
           </div>
           <div className="w-full h-2 bg-[#e5e7eb] rounded-full">
             <div className="h-2 bg-[#6366f1] rounded-full" style={{ width: '75%' }} />
@@ -374,13 +374,13 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'box':
       return (
-        <div style={wrapStyle} className="border border-dashed border-[#d1d5db] rounded-lg p-4 bg-[#f9fafb] min-h-[60px]">
+        <div style={wrapStyle} className="border border-dashed border-[#d1d5db] dark:border-[#334155] rounded-lg p-4 bg-[#f9fafb] dark:bg-[#1e293b] min-h-[60px]">
           {(field.children && field.children.length > 0) ? (
             <div className="flex flex-col gap-2">
               {field.children.map(child => {
                 const childMeta = getFieldMeta(child.type)
                 return (
-                  <div key={child.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white border border-[#e5e7eb]">
+                  <div key={child.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white dark:bg-[#1e293b] border border-[#e5e7eb] dark:border-[#334155]">
                     <span className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
                       style={{ background: childMeta.color + '18', color: childMeta.color }}>
                       <childMeta.icon size={9} />
@@ -392,7 +392,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full min-h-[40px]">
-              <span className="text-xs text-[#9ca3af]">{field.label || 'Box'}</span>
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">{field.label || 'Box'}</span>
             </div>
           )}
         </div>
@@ -407,16 +407,16 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'dialog_layout':
       return (
-        <div style={wrapStyle} className="border border-[#d1d5db] rounded-lg shadow-sm bg-white overflow-hidden">
-          <div className="px-4 py-2 border-b border-[#e5e7eb] bg-[#f9fafb] flex items-center justify-between">
-            <span className="text-sm font-medium text-[#374151]">{field.label || 'Dialog'}</span>
+        <div style={wrapStyle} className="border border-[#d1d5db] dark:border-[#334155] rounded-lg shadow-sm bg-white dark:bg-[#1e293b] overflow-hidden">
+          <div className="px-4 py-2 border-b border-[#e5e7eb] dark:border-[#334155] bg-[#f9fafb] dark:bg-[#0f172a] flex items-center justify-between">
+            <span className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1]">{field.label || 'Dialog'}</span>
             <span className="text-[#9ca3af] text-lg leading-none cursor-default">×</span>
           </div>
           <div className="px-4 py-3">
-            <p className="text-xs text-[#9ca3af]">Dialog content area</p>
+            <p className="text-xs text-[#9ca3af] dark:text-[#64748b]">Dialog content area</p>
           </div>
-          <div className="px-4 py-2 border-t border-[#e5e7eb] bg-[#f9fafb] flex justify-end gap-2">
-            <button disabled className="px-3 py-1 text-xs border border-[#d1d5db] rounded cursor-default text-[#374151]">Cancel</button>
+          <div className="px-4 py-2 border-t border-[#e5e7eb] dark:border-[#334155] bg-[#f9fafb] dark:bg-[#0f172a] flex justify-end gap-2">
+            <button disabled className="px-3 py-1 text-xs border border-[#d1d5db] dark:border-[#334155] rounded cursor-default text-[#374151] dark:text-[#cbd5e1]">Cancel</button>
             <button disabled className="px-3 py-1 text-xs bg-[#6366f1] text-white rounded cursor-default">Confirm</button>
           </div>
         </div>
@@ -428,7 +428,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
           <Label field={field} />
           {[1, 2, 3].map(i => (
             <div key={i} className="h-8 bg-[#e5e7eb] rounded-md flex items-center px-3">
-              <span className="text-xs text-[#9ca3af]">Stack item {i}</span>
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">Stack item {i}</span>
             </div>
           ))}
         </div>
@@ -438,9 +438,9 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'card':
       return (
-        <div style={wrapStyle} className="border border-[#e5e7eb] rounded-xl p-4 bg-white shadow-sm">
-          <p className="text-sm font-medium text-[#374151] mb-1">{field.label || 'Card title'}</p>
-          <p className="text-xs text-[#9ca3af]">{field.placeholder || 'Card content goes here.'}</p>
+        <div style={wrapStyle} className="border border-[#e5e7eb] dark:border-[#334155] rounded-xl p-4 bg-white dark:bg-[#1e293b] shadow-sm">
+          <p className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1">{field.label || 'Card title'}</p>
+          <p className="text-xs text-[#9ca3af] dark:text-[#64748b]">{field.placeholder || 'Card content goes here.'}</p>
         </div>
       )
 
@@ -471,17 +471,17 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'form_control_label':
       return (
         <div className="flex items-center gap-2.5" style={wrapStyle}>
-          <div className="w-4 h-4 rounded border-2 border-[#6366f1] bg-[#f9fafb] flex items-center justify-center">
+          <div className="w-4 h-4 rounded border-2 border-[#6366f1] bg-[#f9fafb] dark:bg-[#1e293b] flex items-center justify-center">
             <div className="w-2 h-2 rounded-sm bg-[#6366f1]" />
           </div>
-          <label className="text-sm text-[#374151]" style={buildLabelStyle(s)}>{field.label || 'Form control label'}</label>
+          <label className="text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>{field.label || 'Form control label'}</label>
         </div>
       )
 
     case 'form_label':
       return (
         <div style={wrapStyle}>
-          <label className="block text-sm font-medium text-[#374151]" style={buildLabelStyle(s)}>
+          <label className="block text-sm font-medium text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>
             {field.label || 'Form label'}
             {field.validation?.required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
@@ -511,8 +511,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'slot':
       return (
-        <div style={wrapStyle} className="border-2 border-dashed border-[#9ca3af] rounded-lg p-4 min-h-[60px] flex items-center justify-center bg-[#f9fafb]">
-          <span className="text-xs text-[#9ca3af]">{field.label || '{ Slot }'}</span>
+        <div style={wrapStyle} className="border-2 border-dashed border-[#9ca3af] dark:border-[#475569] rounded-lg p-4 min-h-[60px] flex items-center justify-center bg-[#f9fafb] dark:bg-[#1e293b]">
+          <span className="text-xs text-[#9ca3af] dark:text-[#64748b]">{field.label || '{ Slot }'}</span>
         </div>
       )
 
@@ -534,12 +534,12 @@ export default function FieldPreview({ field, sectionId }: Props) {
           <Label field={field} />
           <div className="space-y-2">
             {[1, 2].map(i => (
-              <div key={i} className="flex items-center gap-2 p-2 border border-[#e5e7eb] rounded-lg bg-[#f9fafb]">
+              <div key={i} className="flex items-center gap-2 p-2 border border-[#e5e7eb] dark:border-[#334155] rounded-lg bg-[#f9fafb] dark:bg-[#1e293b]">
                 <div className="flex-1 h-6 bg-[#e5e7eb] rounded" />
                 <button disabled className="w-6 h-6 flex items-center justify-center text-[#9ca3af] text-sm cursor-default">×</button>
               </div>
             ))}
-            <button disabled className="w-full py-1.5 border border-dashed border-[#d1d5db] rounded-lg text-xs text-[#9ca3af] cursor-default">
+            <button disabled className="w-full py-1.5 border border-dashed border-[#d1d5db] dark:border-[#334155] rounded-lg text-xs text-[#9ca3af] dark:text-[#64748b] cursor-default">
               + Add item
             </button>
           </div>
@@ -550,16 +550,16 @@ export default function FieldPreview({ field, sectionId }: Props) {
 
     case 'modal':
       return (
-        <div style={wrapStyle} className="border border-[#d1d5db] rounded-xl shadow-lg bg-white overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#e5e7eb] flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#0f172a]">{field.label || 'Modal Title'}</span>
+        <div style={wrapStyle} className="border border-[#d1d5db] dark:border-[#334155] rounded-xl shadow-lg bg-white dark:bg-[#1e293b] overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#e5e7eb] dark:border-[#334155] flex items-center justify-between">
+            <span className="text-sm font-semibold text-[#0f172a] dark:text-[#f1f5f9]">{field.label || 'Modal Title'}</span>
             <span className="text-[#9ca3af] text-lg leading-none cursor-default">×</span>
           </div>
           <div className="px-5 py-4">
-            <p className="text-sm text-[#64748b]">{field.placeholder || 'Modal body content goes here.'}</p>
+            <p className="text-sm text-[#64748b] dark:text-[#94a3b8]">{field.placeholder || 'Modal body content goes here.'}</p>
           </div>
-          <div className="px-5 py-3 border-t border-[#e5e7eb] bg-[#f9fafb] flex justify-end gap-2">
-            <button disabled className="px-4 py-1.5 text-sm border border-[#d1d5db] rounded-lg cursor-default text-[#374151]">Cancel</button>
+          <div className="px-5 py-3 border-t border-[#e5e7eb] dark:border-[#334155] bg-[#f9fafb] dark:bg-[#0f172a] flex justify-end gap-2">
+            <button disabled className="px-4 py-1.5 text-sm border border-[#d1d5db] dark:border-[#334155] rounded-lg cursor-default text-[#374151] dark:text-[#cbd5e1]">Cancel</button>
             <button disabled className="px-4 py-1.5 text-sm bg-[#6366f1] text-white rounded-lg cursor-default">Confirm</button>
           </div>
         </div>
@@ -583,7 +583,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
       const Tag = tagMap[lvl]
       return (
         <div style={wrapStyle}>
-          <Tag className={`${sizeMap[lvl]} text-[#0f172a] leading-tight`} style={buildLabelStyle(s)}>
+          <Tag className={`${sizeMap[lvl]} text-[#0f172a] dark:text-[#f1f5f9] leading-tight`} style={buildLabelStyle(s)}>
             {field.content || field.label || `Heading ${lvl}`}
           </Tag>
         </div>
@@ -593,7 +593,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'paragraph':
       return (
         <div style={wrapStyle}>
-          <p className="text-base text-[#374151] leading-relaxed" style={buildLabelStyle(s)}>
+          <p className="text-base text-[#374151] dark:text-[#cbd5e1] leading-relaxed" style={buildLabelStyle(s)}>
             {field.content || field.label || 'This is a paragraph. Click to edit and add your own text content here.'}
           </p>
         </div>
@@ -625,8 +625,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'ordered_list':
       return (
         <div style={wrapStyle}>
-          {field.label && <p className="text-sm font-medium text-[#374151] mb-1.5">{field.label}</p>}
-          <ol className="list-decimal list-inside space-y-1 text-sm text-[#374151]" style={buildLabelStyle(s)}>
+          {field.label && <p className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1.5">{field.label}</p>}
+          <ol className="list-decimal list-inside space-y-1 text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>
             {(field.content || 'First item\nSecond item\nThird item').split('\n').map((item, i) => (
               <li key={i} className="leading-relaxed">{item}</li>
             ))}
@@ -637,8 +637,8 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'unordered_list':
       return (
         <div style={wrapStyle}>
-          {field.label && <p className="text-sm font-medium text-[#374151] mb-1.5">{field.label}</p>}
-          <ul className="list-disc list-inside space-y-1 text-sm text-[#374151]" style={buildLabelStyle(s)}>
+          {field.label && <p className="text-sm font-medium text-[#374151] dark:text-[#cbd5e1] mb-1.5">{field.label}</p>}
+          <ul className="list-disc list-inside space-y-1 text-sm text-[#374151] dark:text-[#cbd5e1]" style={buildLabelStyle(s)}>
             {(field.content || 'First item\nSecond item\nThird item').split('\n').map((item, i) => (
               <li key={i} className="leading-relaxed">{item}</li>
             ))}
@@ -652,7 +652,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
           {field.label ? (
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-[#e5e7eb]" />
-              <span className="text-xs text-[#9ca3af] font-medium">{field.label}</span>
+              <span className="text-xs text-[#9ca3af] dark:text-[#64748b] font-medium">{field.label}</span>
               <div className="flex-1 h-px bg-[#e5e7eb]" />
             </div>
           ) : (
@@ -664,7 +664,7 @@ export default function FieldPreview({ field, sectionId }: Props) {
     case 'caption':
       return (
         <div style={wrapStyle}>
-          <p className="text-xs text-[#9ca3af] leading-relaxed italic" style={buildLabelStyle(s)}>
+          <p className="text-xs text-[#9ca3af] dark:text-[#64748b] leading-relaxed italic" style={buildLabelStyle(s)}>
             {field.content || field.label || 'Caption text — add a short description or note here.'}
           </p>
         </div>
