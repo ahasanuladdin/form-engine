@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 import {
   DndContext, DragEndEvent, DragStartEvent,
   PointerSensor, useSensor, useSensors,
-  DragOverlay, rectIntersection,
+  DragOverlay, rectIntersection, pointerWithin,
 } from '@dnd-kit/core'
 import type { CollisionDetection } from '@dnd-kit/core'
 import { useBuilderStore } from '@/store/builderStore'
@@ -19,18 +19,21 @@ import FormRenderer from '@/components/FormRenderer'
 import { getFieldMeta } from '@/lib/fieldRegistry'
 import { Loader2, Eye, PenLine, Monitor, Tablet, Smartphone } from 'lucide-react'
 
-// ── Custom collision: beside: zones always win when the pointer is over them ──
-// rectIntersection picks the droppable with the largest overlap area, which means
-// a wide field card (600-800px) always beats the narrow BesideZone (24px).
-// This custom detector checks beside: zones first; only if none intersect does it
-// fall back to rectIntersection for the rest of the droppables.
+// ── Custom collision: beside zones win when pointer is over them ──────────────
+// pointerWithin checks the POINTER position (not ghost overlap area) so even a
+// 24px-wide BesideZone reliably fires when the user drags over it. We check
+// beside: zones first using pointerWithin; fall back to rectIntersection for
+// everything else (field reordering, section drops, canvas drops).
 const besidePriorityCollision: CollisionDetection = (args) => {
   const besideContainers = args.droppableContainers.filter(
     (c) => String(c.id).startsWith('beside:')
   )
   if (besideContainers.length > 0) {
-    const besideHits = rectIntersection({ ...args, droppableContainers: besideContainers })
-    if (besideHits.length > 0) return besideHits
+    const pointerHits = pointerWithin({ ...args, droppableContainers: besideContainers })
+    if (pointerHits.length > 0) return pointerHits
+    // Also try rectIntersection for cases where pointer moves fast
+    const rectHits = rectIntersection({ ...args, droppableContainers: besideContainers })
+    if (rectHits.length > 0) return rectHits
   }
   return rectIntersection(args)
 }
@@ -314,7 +317,7 @@ export default function EditBuilderPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex-1 flex overflow-hidden">
-            <aside className="w-56 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
+            <aside className="w-64 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
               <FieldPalette />
             </aside>
 
@@ -384,7 +387,7 @@ export default function EditBuilderPage() {
               </div>
             )}
             {paletteMeta && (
-              <div className="palette-item shadow-xl opacity-95 w-48 border border-[var(--brand)]/30">
+              <div className="palette-item shadow-xl opacity-95 w-64 border border-[var(--brand)]/30">
                 <span className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                   style={{ background: paletteMeta.color + '18', color: paletteMeta.color }}>
                   <paletteMeta.icon size={13} />

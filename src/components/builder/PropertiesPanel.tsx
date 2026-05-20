@@ -673,6 +673,85 @@ function FieldProperties({ field, sectionId }: { field: FormField; sectionId?: s
                 </Row>
               )}
 
+              {/* date_picker — format */}
+              {field.type === 'date_picker' && (
+                <Row label="Date Format">
+                  <select className="fe-input text-xs" value={field.dateFormat || 'YYYY-MM-DD'} onChange={e => set({ dateFormat: e.target.value })}>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                    <option value="D MMMM YYYY">D MMMM YYYY</option>
+                    <option value="MMM D, YYYY">MMM D, YYYY</option>
+                  </select>
+                </Row>
+              )}
+
+              {/* time_picker — format */}
+              {field.type === 'time_picker' && (
+                <Row label="Time Format">
+                  <div className="flex gap-2">
+                    {(['12h', '24h'] as const).map(f => (
+                      <button key={f} onClick={() => set({ timeFormat: f })}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${(field.timeFormat || '12h') === f ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#94a3b8] hover:border-[#a5b4fc]'}`}>
+                        {f === '12h' ? '12-hour (AM/PM)' : '24-hour'}
+                      </button>
+                    ))}
+                  </div>
+                </Row>
+              )}
+
+              {/* time_range_picker — format */}
+              {field.type === 'time_range_picker' && (
+                <Row label="Time Format">
+                  <div className="flex gap-2">
+                    {(['12h', '24h'] as const).map(f => (
+                      <button key={f} onClick={() => set({ timeFormat: f })}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${(field.timeFormat || '12h') === f ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#94a3b8] hover:border-[#a5b4fc]'}`}>
+                        {f === '12h' ? '12-hour (AM/PM)' : '24-hour'}
+                      </button>
+                    ))}
+                  </div>
+                </Row>
+              )}
+
+              {/* date_range_picker — format + range toggle options */}
+              {field.type === 'date_range_picker' && (
+                <>
+                  <Row label="Date Format">
+                    <select className="fe-input text-xs" value={field.dateFormat || 'YYYY-MM-DD'} onChange={e => set({ dateFormat: e.target.value })}>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                      <option value="D MMMM YYYY">D MMMM YYYY</option>
+                      <option value="MMM D, YYYY">MMM D, YYYY</option>
+                    </select>
+                  </Row>
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-[var(--muted)] mb-2">Range Quick Options</label>
+                    <div className="space-y-2">
+                      {([
+                        { key: 'dateRangeShowYear',    label: 'Year' },
+                        { key: 'dateRangeShowQuarter', label: 'Quarter' },
+                        { key: 'dateRangeShowMonth',   label: 'Month' },
+                      ] as { key: 'dateRangeShowYear' | 'dateRangeShowQuarter' | 'dateRangeShowMonth'; label: string }[]).map(({ key, label }) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-xs text-[var(--text)]">{label}</span>
+                          <Toggle
+                            checked={field[key] !== false}
+                            onChange={v => set({ [key]: v })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-[var(--muted)] mt-1.5 opacity-70">
+                      Mirrors Laravel Carbon range presets (quarter, month, year)
+                    </p>
+                  </div>
+                </>
+              )}
+
               {hasOptions && (
                 <div className="mb-3">
                   <SectionTitle>Options</SectionTitle>

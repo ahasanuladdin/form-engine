@@ -149,14 +149,19 @@ export default function FieldPreview({ field, sectionId }: Props) {
         </div>
       )
 
-    case 'date_picker':
+    case 'date_picker': {
+      const fmt = field.dateFormat || 'YYYY-MM-DD'
       return (
         <div style={wrapStyle}>
           <Label field={field} />
-          <input readOnly className={inputBase} style={inputStyle} type="date" />
+          <div className="relative">
+            <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={fmt} />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] text-sm">📅</span>
+          </div>
           {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
+    }
 
     case 'radio_group':
       return (
@@ -213,6 +218,92 @@ export default function FieldPreview({ field, sectionId }: Props) {
           {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
         </div>
       )
+
+    case 'email_field':
+      return (
+        <div style={wrapStyle}>
+          <Label field={field} />
+          <input readOnly className={inputBase} style={inputStyle} type="email" placeholder={field.placeholder || 'you@example.com'} />
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
+        </div>
+      )
+
+    case 'password_field':
+      return (
+        <div style={wrapStyle}>
+          <Label field={field} />
+          <div className="relative">
+            <input readOnly className={inputBase} style={inputStyle} type="password" placeholder={field.placeholder || '••••••••'} value="password" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] cursor-default select-none text-xs">👁</span>
+          </div>
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
+        </div>
+      )
+
+    case 'time_picker': {
+      const fmt = field.timeFormat || '12h'
+      const placeholder = fmt === '12h' ? '12:00 PM' : '00:00'
+      return (
+        <div style={wrapStyle}>
+          <Label field={field} />
+          <div className="relative">
+            <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={placeholder} />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] text-sm">🕐</span>
+          </div>
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
+        </div>
+      )
+    }
+
+    case 'time_range_picker': {
+      const fmt = field.timeFormat || '12h'
+      const ph = fmt === '12h' ? '12:00 PM' : '00:00'
+      return (
+        <div style={wrapStyle}>
+          <Label field={field} />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={ph} />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] text-xs">🕐</span>
+            </div>
+            <span className="text-[#9ca3af] text-sm font-medium">→</span>
+            <div className="relative flex-1">
+              <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={ph} />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] text-xs">🕐</span>
+            </div>
+          </div>
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
+        </div>
+      )
+    }
+
+    case 'date_range_picker': {
+      const fmt = field.dateFormat || 'YYYY-MM-DD'
+      return (
+        <div style={wrapStyle}>
+          <Label field={field} />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={`Start (${fmt})`} />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] text-xs">📅</span>
+            </div>
+            <span className="text-[#9ca3af] text-sm font-medium">→</span>
+            <div className="relative flex-1">
+              <input readOnly className={inputBase} style={inputStyle} type="text" placeholder={`End (${fmt})`} />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] text-xs">📅</span>
+            </div>
+          </div>
+          {(field.dateRangeShowQuarter || field.dateRangeShowMonth || field.dateRangeShowYear) && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {field.dateRangeShowYear    && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe]">Year</span>}
+              {field.dateRangeShowQuarter && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe]">Quarter</span>}
+              {field.dateRangeShowMonth   && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe]">Month</span>}
+            </div>
+          )}
+          {field.helpText && <p className="text-xs text-[#9ca3af] dark:text-[#64748b] mt-1">{field.helpText}</p>}
+        </div>
+      )
+    }
 
     case 'uploader':
       return (

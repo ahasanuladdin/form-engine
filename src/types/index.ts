@@ -3,6 +3,8 @@ export type FieldType =
   | 'button' | 'button_group' | 'checkbox' | 'date_picker'
   | 'radio_group' | 'radio_item' | 'select' | 'switch'
   | 'text_field' | 'uploader'
+  | 'password_field' | 'email_field'
+  | 'time_picker' | 'date_range_picker' | 'time_range_picker'
   // Data display
   | 'list' | 'list_item' | 'tooltip' | 'typography' | 'table'
   // Feedback
@@ -114,6 +116,13 @@ export interface FormField {
   tableBordered?: boolean
   tableCompact?: boolean
   tableCaption?: string
+  // date/time format
+  dateFormat?: string
+  timeFormat?: '12h' | '24h'
+  // date range picker toggles
+  dateRangeShowQuarter?: boolean
+  dateRangeShowMonth?: boolean
+  dateRangeShowYear?: boolean
 }
 
 export interface FormSection {

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import FieldPreview from './FieldPreview'
 import BoxChildModal from './BoxChildModal'
-import { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, createContext, useContext } from 'react'
 import { v4 as uuid } from 'uuid'
 
 // ── Viewport context (so child components know if we're in mobile/tablet frame) ─
@@ -26,6 +26,7 @@ export const WIDTH_LABEL: Record<FieldWidth, string> = {
 
 export function getWidthPx(width?: FieldWidth): string {
   switch (width) {
+    case 'col1': return '100%'
     case 'col2': return 'calc(50% - 6px)'
     case 'col3': return 'calc(33.333% - 8px)'
     case 'col4': return 'calc(25% - 9px)'
@@ -217,7 +218,8 @@ function SortableFieldCard({ field, sectionId }: { field: FormField; sectionId?:
       {...attributes}
       {...listeners}
       style={{
-        flex: '1 1 0',
+        // Width is enforced by the parent wrapper in FieldRow — just fill it fully here
+        width: '100%',
         minWidth: 0,
         transform: CSS.Transform.toString(transform),
         transition,
@@ -254,7 +256,9 @@ function BesideZone({
   const alreadyInRow  = draggingField ? rowFields.some(f => f.id === draggingField.id) : false
   const canAccept     = !!draggingField && !alreadyInRow && rowFields.length < 4
 
-  if (!canAccept && !active) return <div className="w-1 flex-shrink-0" />
+  // When no drag is in progress, render an invisible 4px spacer.
+  // This preserves layout without taking up visual space.
+  if (!active) return <div style={{ width: 4, flexShrink: 0 }} />
 
   return (
     <div
@@ -264,12 +268,19 @@ function BesideZone({
         flex items-center justify-center
         transition-all duration-150 overflow-hidden
         ${isOver && canAccept
-          ? 'w-14 border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] shadow-inner'
+          ? 'border-[var(--brand)] bg-[#eef2ff] dark:bg-[#1e1b4b] shadow-inner'
           : canAccept
-            ? 'w-6 border-[var(--brand)]/30 bg-[#f5f3ff]/20 hover:border-[var(--brand)]/60 hover:bg-[#eef2ff]/40 hover:w-10'
-            : 'w-2 border-transparent'
+            ? 'border-[var(--brand)]/40 bg-[#f5f3ff]/30'
+            : 'border-transparent opacity-0'
         }
       `}
+      // Keep a large hit area during drag so pointer detection is reliable.
+      // min-width 40px when canAccept, 56px when hovered.
+      style={{
+        width: isOver && canAccept ? 56 : canAccept ? 40 : 4,
+        minHeight: 40,
+        transition: 'width 120ms ease, background 120ms ease',
+      }}
       title={canAccept ? 'Drop here to place beside' : ''}
     >
       {isOver && canAccept && (
@@ -281,7 +292,7 @@ function BesideZone({
         </span>
       )}
       {!isOver && canAccept && (
-        <span className="text-[var(--brand)]/40 text-[10px] font-bold select-none">|</span>
+        <span className="text-[var(--brand)]/50 text-[10px] font-bold select-none">→</span>
       )}
     </div>
   )
@@ -305,15 +316,33 @@ function FieldRow({ rowFields, sectionId }: { rowFields: FormField[]; sectionId?
     )
   }
 
+  // Build a flat list: [fieldWrapper, besideZone, fieldWrapper, besideZone, ...]
+  // BesideZone MUST be a flex sibling of the field wrapper — NOT nested inside it.
+  // If BesideZone is inside the width-constrained wrapper (e.g. maxWidth: 50%)
+  // it gets squeezed to zero and drag-over never fires on it.
   return (
-    <div className="flex gap-2 items-stretch w-full min-w-0" style={{ flexWrap: 'nowrap' }}>
-      {rowFields.map(field => (
-        <div key={field.id} className="flex gap-1 items-stretch min-w-0" style={{ flex: '1 1 0', minWidth: 0 }}>
-          <SortableFieldCard field={field} sectionId={sectionId} />
-          {/* Beside zone after every field — hidden when row is full (4 fields) */}
-          <BesideZone afterField={field} rowFields={rowFields} sectionId={sectionId} />
-        </div>
-      ))}
+    <div className="flex items-stretch w-full min-w-0" style={{ flexWrap: 'wrap', gap: '4px' }}>
+      {rowFields.map(field => {
+        const wrapperStyle: React.CSSProperties = (() => {
+          switch (field.width) {
+            case 'col1': return { flex: '1 1 100%',                maxWidth: '100%',                minWidth: 0 }
+            case 'col2': return { flex: '1 1 calc(50% - 28px)',    maxWidth: 'calc(50% - 28px)',    minWidth: 0 }
+            case 'col3': return { flex: '1 1 calc(33.333% - 28px)',maxWidth: 'calc(33.333% - 28px)',minWidth: 0 }
+            case 'col4': return { flex: '1 1 calc(25% - 28px)',    maxWidth: 'calc(25% - 28px)',    minWidth: 0 }
+            default:     return { flex: '1 1 100%',                maxWidth: '100%',                minWidth: 0 }
+          }
+        })()
+        return (
+          // Fragment keeps field + its BesideZone as siblings in the flex container
+          <React.Fragment key={field.id}>
+            <div style={wrapperStyle}>
+              <SortableFieldCard field={field} sectionId={sectionId} />
+            </div>
+            {/* BesideZone is a flex sibling — NOT inside the width-capped wrapper */}
+            <BesideZone afterField={field} rowFields={rowFields} sectionId={sectionId} />
+          </React.Fragment>
+        )
+      })}
     </div>
   )
 }

@@ -314,7 +314,7 @@ export default function EditBuilderPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex-1 flex overflow-hidden">
-            <aside className="w-56 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
+            <aside className="w-72 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
               <FieldPalette />
             </aside>
 

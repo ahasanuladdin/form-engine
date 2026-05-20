@@ -1,11 +1,12 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext, DragEndEvent, DragStartEvent,
   PointerSensor, useSensor, useSensors,
-  DragOverlay, rectIntersection,
+  DragOverlay, rectIntersection, pointerWithin,
 } from '@dnd-kit/core'
+import type { CollisionDetection } from '@dnd-kit/core'
 import { useBuilderStore } from '@/store/builderStore'
 import { FieldType, FormField } from '@/types'
 import { v4 as uuid } from 'uuid'
@@ -15,16 +16,42 @@ import PropertiesPanel from '@/components/builder/PropertiesPanel'
 import BuilderToolbar from '@/components/builder/BuilderToolbar'
 import { getFieldMeta } from '@/lib/fieldRegistry'
 
+
+// ── Custom collision: beside zones win when pointer is over them ──────────────
+// pointerWithin checks the POINTER position (not ghost overlap area) so even a
+// 24px-wide BesideZone reliably fires when the user drags over it. We check
+// beside: zones first using pointerWithin; fall back to rectIntersection for
+// everything else (field reordering, section drops, canvas drops).
+const besidePriorityCollision: CollisionDetection = (args) => {
+  const besideContainers = args.droppableContainers.filter(
+    (c) => String(c.id).startsWith('beside:')
+  )
+  if (besideContainers.length > 0) {
+    const pointerHits = pointerWithin({ ...args, droppableContainers: besideContainers })
+    if (pointerHits.length > 0) return pointerHits
+    // Also try rectIntersection for cases where pointer moves fast
+    const rectHits = rectIntersection({ ...args, droppableContainers: besideContainers })
+    if (rectHits.length > 0) return rectHits
+  }
+  return rectIntersection(args)
+}
+
 export default function NewBuilderPage() {
   const router  = useRouter()
   const store   = useBuilderStore()
-  const { fields, sections, addField, moveField, addFieldToSection, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow, formName, formDescription } = store
+  const { fields, sections, addField, moveField, addFieldToSection, moveFieldInSection, moveFieldBetweenSections, updateField, removeFieldFromRow, formName, formDescription, resetForm } = store
 
   const [activeField, setActiveField]             = useState<FormField | null>(null)
   const [activeSectionId, setActiveSectionId]     = useState<string | null>(null)
   const [activePaletteType, setActivePaletteType] = useState<FieldType | null>(null)
   const [savedId, setSavedId]                     = useState<number | null>(null)
   const [viewport, setViewport]                   = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+
+  // Always start with a blank slate — Zustand store persists across navigation,
+  // so without this the previous form shows until a hard reload.
+  useEffect(() => {
+    resetForm()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -134,12 +161,12 @@ export default function NewBuilderPage() {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={rectIntersection}
+        collisionDetection={besidePriorityCollision}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex overflow-hidden">
-          <aside className="w-56 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
+          <aside className="w-64 bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col overflow-hidden flex-shrink-0">
             <FieldPalette />
           </aside>
 
@@ -211,7 +238,7 @@ export default function NewBuilderPage() {
             </div>
           )}
           {paletteMeta && (
-            <div className="palette-item shadow-xl opacity-95 w-48 bg-[var(--card-bg)] border border-[var(--brand)]/30">
+            <div className="palette-item shadow-xl opacity-95 w-64 bg-[var(--card-bg)] border border-[var(--brand)]/30">
               <span className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                 style={{ background: paletteMeta.color + '18', color: paletteMeta.color }}>
                 <paletteMeta.icon size={13} />

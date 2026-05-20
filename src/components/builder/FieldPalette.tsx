@@ -1,9 +1,45 @@
 'use client'
 import { useDraggable } from '@dnd-kit/core'
 import { FIELD_REGISTRY, CATEGORIES, FieldMeta } from '@/lib/fieldRegistry'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Search } from 'lucide-react'
 import SectionPanel from './SectionPanel'
+
+// ── Portal tooltip — renders outside all overflow containers ─────────────────
+function TooltipPortal({ label, anchorRef }: { label: string; anchorRef: React.RefObject<HTMLDivElement> }) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    if (!anchorRef.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    setPos({
+      top:  rect.top - 6,                      // 6px gap above the item
+      left: rect.left + rect.width / 2,        // horizontally centred
+    })
+  }, [anchorRef])
+
+  if (!mounted || !pos) return null
+
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top:       pos.top,
+        left:      pos.left,
+        transform: 'translate(-50%, -100%)',
+        zIndex:    9999,
+        pointerEvents: 'none',
+      }}
+      className="palette-tooltip-portal"
+    >
+      {label}
+    </div>,
+    document.body
+  )
+}
 
 function DraggablePaletteItem({ meta }: { meta: FieldMeta }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -11,13 +47,26 @@ function DraggablePaletteItem({ meta }: { meta: FieldMeta }) {
     data: { fromPalette: true, type: meta.type },
   })
 
+  const wordCount   = meta.label.trim().split(/\s+/).length
+  const needsTooltip = wordCount > 2
+  const [hovered, setHovered] = useState(false)
+  const itemRef = useRef<HTMLDivElement>(null)
+
+  // Merge dnd ref + our own ref
+  const mergedRef = (node: HTMLDivElement | null) => {
+    ;(itemRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+    setNodeRef(node)
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={mergedRef}
       {...listeners}
       {...attributes}
       className="palette-item"
       style={{ opacity: isDragging ? 0.4 : 1 }}
+      onMouseEnter={() => needsTooltip && setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <span
         className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
@@ -25,7 +74,11 @@ function DraggablePaletteItem({ meta }: { meta: FieldMeta }) {
       >
         <meta.icon size={13} />
       </span>
-      <span>{meta.label}</span>
+      <span className="truncate">{meta.label}</span>
+
+      {needsTooltip && hovered && (
+        <TooltipPortal label={meta.label} anchorRef={itemRef as React.RefObject<HTMLDivElement>} />
+      )}
     </div>
   )
 }

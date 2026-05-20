@@ -13,6 +13,7 @@ import {
   Heading1, Heading2, Heading3, Heading4, Heading5, Heading6,
   AlignJustify, SeparatorHorizontal, Quote, ListOrdered as OL, List as UL, Captions,
   Table,
+  Lock, Mail, Clock, CalendarRange, Timer,
 } from 'lucide-react'
 import { FieldType } from '@/types'
 
@@ -30,11 +31,16 @@ export const FIELD_REGISTRY: FieldMeta[] = [
   { type: 'button_group',       label: 'Button group',       icon: Layers,            category: 'inputs',       color: '#6366f1' },
   { type: 'checkbox',           label: 'Checkbox',           icon: CheckSquare,       category: 'inputs',       color: '#6366f1' },
   { type: 'date_picker',        label: 'Date picker',        icon: Calendar,          category: 'inputs',       color: '#6366f1' },
+  { type: 'date_range_picker',  label: 'Date range picker',  icon: CalendarRange,     category: 'inputs',       color: '#6366f1' },
+  { type: 'email_field',        label: 'Email field',        icon: Mail,              category: 'inputs',       color: '#6366f1' },
+  { type: 'password_field',     label: 'Password field',     icon: Lock,              category: 'inputs',       color: '#6366f1' },
   { type: 'radio_group',        label: 'Radio group',        icon: Radio,             category: 'inputs',       color: '#6366f1' },
   { type: 'radio_item',         label: 'Radio item',         icon: Circle,            category: 'inputs',       color: '#6366f1' },
   { type: 'select',             label: 'Select',             icon: ChevronDown,       category: 'inputs',       color: '#6366f1' },
   { type: 'switch',             label: 'Switch',             icon: ToggleLeft,        category: 'inputs',       color: '#6366f1' },
   { type: 'text_field',         label: 'Text field',         icon: Type,              category: 'inputs',       color: '#6366f1' },
+  { type: 'time_picker',        label: 'Time picker',        icon: Clock,             category: 'inputs',       color: '#6366f1' },
+  { type: 'time_range_picker',  label: 'Time range picker',  icon: Timer,             category: 'inputs',       color: '#6366f1' },
   { type: 'uploader',           label: 'Uploader',           icon: Upload,            category: 'inputs',       color: '#6366f1' },
 
   // Data display

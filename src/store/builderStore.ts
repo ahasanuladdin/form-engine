@@ -43,6 +43,7 @@ interface BuilderState {
   moveFieldBetweenSections: (fieldId: string, fromSectionId: string | null, toSectionId: string | null, toIndex: number) => void
   rebalanceRow: (rowId: string, sectionId?: string) => void
   removeFieldFromRow: (fieldId: string, sectionId?: string) => void
+  resetForm: () => void
 }
 
 // ── Factory function: returns a FRESH object every call ───────────────────────
@@ -54,7 +55,12 @@ function makeFieldDefaults(type: FormField['type']): Partial<FormField> {
     case 'button':             return { label: 'Button', content: 'Button', buttonVariant: 'primary', buttonAction: 'submit' }
     case 'button_group':       return { label: 'Button Group', options: [{ label: 'Option 1', value: 'option1' }, { label: 'Option 2', value: 'option2' }], validation: {} }
     case 'checkbox':           return { label: 'Checkbox', defaultValue: false, validation: {} }
-    case 'date_picker':        return { label: 'Date Picker', validation: {} }
+    case 'date_picker':        return { label: 'Date Picker', dateFormat: 'YYYY-MM-DD', validation: {} }
+    case 'date_range_picker':  return { label: 'Date Range', dateFormat: 'YYYY-MM-DD', dateRangeShowQuarter: true, dateRangeShowMonth: true, dateRangeShowYear: true, validation: {} }
+    case 'email_field':        return { label: 'Email', placeholder: 'you@example.com', validation: {} }
+    case 'password_field':     return { label: 'Password', placeholder: '••••••••', validation: {} }
+    case 'time_picker':        return { label: 'Time', timeFormat: '12h', validation: {} }
+    case 'time_range_picker':  return { label: 'Time Range', timeFormat: '12h', validation: {} }
     case 'radio_group':        return { label: 'Radio Group', options: [{ label: 'Option 1', value: 'option1' }, { label: 'Option 2', value: 'option2' }], validation: {} }
     case 'radio_item':         return { label: 'Radio Item', validation: {} }
     case 'select':             return { label: 'Select', placeholder: 'Select an option', options: [{ label: 'Option 1', value: 'option1' }, { label: 'Option 2', value: 'option2' }], validation: {} }
@@ -397,7 +403,19 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   },
 
   loadSchema: (fields, settings, name, desc, sections) =>
-    set({ fields, sections: sections || [], settings, formName: name, formDescription: desc, isDirty: false }),
+    set({
+      fields,
+      sections: sections || [],
+      settings,
+      formName: name,
+      formDescription: desc,
+      isDirty: false,
+      // Always reset selection state so a freshly opened form never shows
+      // stale field selections from the previously edited form.
+      selectedId: null,
+      selectedSectionId: null,
+      selectedFieldSectionId: null,
+    }),
 
   importSchema: (json) => {
     try {
@@ -574,5 +592,23 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       return { fields: newFields, sections: newSections, isDirty: true }
     })
   },
+
+  resetForm: () => set({
+    fields:                 [],
+    sections:               [],
+    selectedId:             null,
+    selectedSectionId:      null,
+    selectedFieldSectionId: null,
+    insertIndex:            null,
+    insertSectionId:        null,
+    formName:               'Untitled Form',
+    formDescription:        '',
+    settings: {
+      submitLabel:    'Submit',
+      successMessage: 'Thank you! Your response has been recorded.',
+      showLabels:     true,
+    },
+    isDirty: false,
+  }),
 
 }))

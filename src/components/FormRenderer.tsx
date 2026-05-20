@@ -380,14 +380,24 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
         </div>
       )
 
-    case 'date_picker':
+    case 'date_picker': {
+      const fmt = field.dateFormat || 'YYYY-MM-DD'
       return (
         <div>
           <FieldLabel />
-          <input type="date" className={inputBase + ' dark:[color-scheme:dark]'} {...register(field.id, rules)} />
+          <div className="relative">
+            <input
+              type="date"
+              className={inputBase + ' dark:[color-scheme:dark] pr-10'}
+              {...register(field.id, rules)}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none">📅</span>
+          </div>
+          <p className="text-[10px] text-[#9ca3af] mt-1">Format: {fmt}</p>
           <FieldError />
         </div>
       )
+    }
 
     case 'radio_group':
       return (
@@ -460,14 +470,72 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
         </div>
       )
 
-    case 'text_field':
+    case 'text_field': {
+      // Build a per-character regex from the pattern if present, so we can
+      // block individual keystrokes that can never satisfy it.
+      // e.g. pattern "^[A-Z]+$"  →  charRegex /^[A-Z]$/
+      // We extract the character class / atom between ^ and $ if present,
+      // otherwise we test the whole current value + new char.
+      let charRegex: RegExp | null = null
+      if (field.validation?.pattern) {
+        try {
+          // Try to extract a simple repeating char-class: ^[...]+$ or ^[...]*$
+          const m = field.validation.pattern.match(/^\^(\[.*?\])[+*]?\$$/)
+          if (m) {
+            charRegex = new RegExp(m[1])
+          }
+        } catch { /* ignore bad regex */ }
+      }
+
+      const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        // Allow control keys (backspace, arrows, tab, delete, etc.)
+        if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
+
+        const target = e.currentTarget
+        const currentLen = target.value.length
+        const selectionLen = Math.abs((target.selectionEnd ?? 0) - (target.selectionStart ?? 0))
+        const charsAfterKey = currentLen - selectionLen + 1
+
+        // 1. Hard-block if maxLength would be exceeded
+        if (field.validation?.maxLength && charsAfterKey > field.validation.maxLength) {
+          e.preventDefault()
+          return
+        }
+
+        // 2. Hard-block if the character doesn't match the pattern char class
+        if (charRegex && !charRegex.test(e.key)) {
+          e.preventDefault()
+        }
+      }
+
+      const sharedProps = {
+        placeholder: field.placeholder,
+        onKeyDown: handleKeyDown,
+        ...register(field.id, rules),
+      }
+
       return (
         <div>
           <FieldLabel />
-          <input type="text" className={inputBase} placeholder={field.placeholder} {...register(field.id, rules)} />
+          {(field.rows ?? 1) > 1 ? (
+            <textarea
+              rows={field.rows}
+              className={inputBase + ' resize-none'}
+              maxLength={field.validation?.maxLength || undefined}
+              {...sharedProps}
+            />
+          ) : (
+            <input
+              type="text"
+              className={inputBase}
+              maxLength={field.validation?.maxLength || undefined}
+              {...sharedProps}
+            />
+          )}
           <FieldError />
         </div>
       )
+    }
 
     case 'uploader':
       return (
@@ -483,6 +551,138 @@ function FieldRenderer({ field, register, errors, watch, control, onFieldChange,
           <FieldError />
         </div>
       )
+
+    case 'email_field':
+      return (
+        <div>
+          <FieldLabel />
+          <input
+            type="email"
+            className={inputBase}
+            placeholder={field.placeholder || 'you@example.com'}
+            {...register(field.id, {
+              ...rules,
+              pattern: rules.pattern || {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Please enter a valid email address',
+              },
+            })}
+          />
+          <FieldError />
+        </div>
+      )
+
+    case 'password_field': {
+      const [showPw, setShowPw] = React.useState(false)
+      return (
+        <div>
+          <FieldLabel />
+          <div className="relative">
+            <input
+              type={showPw ? 'text' : 'password'}
+              className={inputBase + ' pr-10'}
+              placeholder={field.placeholder || '••••••••'}
+              {...register(field.id, rules)}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#6366f1] transition-colors text-sm select-none"
+            >
+              {showPw ? '🙈' : '👁'}
+            </button>
+          </div>
+          <FieldError />
+        </div>
+      )
+    }
+
+    case 'time_picker': {
+      const fmt = field.timeFormat || '12h'
+      return (
+        <div>
+          <FieldLabel />
+          <div className="relative">
+            <input
+              type="time"
+              className={inputBase + ' dark:[color-scheme:dark] pr-10'}
+              {...register(field.id, rules)}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none text-sm">🕐</span>
+          </div>
+          <p className="text-[10px] text-[#9ca3af] mt-1">{fmt === '12h' ? '12-hour (AM/PM)' : '24-hour'} format</p>
+          <FieldError />
+        </div>
+      )
+    }
+
+    case 'time_range_picker': {
+      const fmt = field.timeFormat || '12h'
+      return (
+        <div>
+          <FieldLabel />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="time"
+                className={inputBase + ' dark:[color-scheme:dark] pr-8'}
+                {...register(field.id + '_start', rules)}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none text-xs">🕐</span>
+            </div>
+            <span className="text-[#9ca3af] font-medium text-sm flex-shrink-0">→</span>
+            <div className="relative flex-1">
+              <input
+                type="time"
+                className={inputBase + ' dark:[color-scheme:dark] pr-8'}
+                {...register(field.id + '_end', rules)}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none text-xs">🕐</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#9ca3af] mt-1">{fmt === '12h' ? '12-hour (AM/PM)' : '24-hour'} format</p>
+          <FieldError />
+        </div>
+      )
+    }
+
+    case 'date_range_picker': {
+      const fmt = field.dateFormat || 'YYYY-MM-DD'
+      return (
+        <div>
+          <FieldLabel />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="date"
+                className={inputBase + ' dark:[color-scheme:dark] pr-8'}
+                {...register(field.id + '_start', rules)}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none text-xs">📅</span>
+            </div>
+            <span className="text-[#9ca3af] font-medium text-sm flex-shrink-0">→</span>
+            <div className="relative flex-1">
+              <input
+                type="date"
+                className={inputBase + ' dark:[color-scheme:dark] pr-8'}
+                {...register(field.id + '_end', rules)}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none text-xs">📅</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-[#9ca3af] mt-1">Format: {fmt}</p>
+          {(field.dateRangeShowYear || field.dateRangeShowQuarter || field.dateRangeShowMonth) && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {field.dateRangeShowYear    && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe] cursor-default">Year</span>}
+              {field.dateRangeShowQuarter && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe] cursor-default">Quarter</span>}
+              {field.dateRangeShowMonth   && <span className="px-2 py-0.5 text-[10px] bg-[#eef2ff] text-[#6366f1] rounded-full font-medium border border-[#c7d2fe] cursor-default">Month</span>}
+            </div>
+          )}
+          <FieldError />
+        </div>
+      )
+    }
 
     // ── DATA DISPLAY ──────────────────────────────────────────────────────────
 
@@ -915,7 +1115,11 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
 
   const defaults = buildDefaults(fields)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset, control, getValues, trigger } = useForm({ defaultValues: defaults })
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset, control, getValues, trigger } = useForm({
+    defaultValues: defaults,
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+  })
 
   useEffect(() => { reset(buildDefaults(fields)) }, [fields])
 
@@ -958,10 +1162,11 @@ export default function FormRenderer({ schema, formName, onSubmit, previewOnly =
 
   const getWidthStyle = (width?: string): React.CSSProperties => {
     switch (width) {
-      case 'col2': return { flex: '1 1 180px', minWidth: 0 }
-      case 'col3': return { flex: '1 1 120px', minWidth: 0 }
-      case 'col4': return { flex: '1 1 80px', minWidth: 0 }
-      default: return { width: '100%' }
+      case 'col1': return { flex: '1 1 100%',                maxWidth: '100%',                minWidth: 0 }
+      case 'col2': return { flex: '1 1 calc(50% - 6px)',     maxWidth: 'calc(50% - 6px)',     minWidth: 0 }
+      case 'col3': return { flex: '1 1 calc(33.333% - 8px)', maxWidth: 'calc(33.333% - 8px)', minWidth: 0 }
+      case 'col4': return { flex: '1 1 calc(25% - 9px)',     maxWidth: 'calc(25% - 9px)',     minWidth: 0 }
+      default:     return { flex: '1 1 100%',                maxWidth: '100%',                minWidth: 0 }
     }
   }
 
